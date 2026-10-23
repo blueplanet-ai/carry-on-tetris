@@ -1,6 +1,13 @@
 // Network-first service worker: always fresh when online, fully playable offline at the gate.
-const CACHE = "carry-on-v5";
-const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "carry-on-v6";
+// Everything the game needs to run offline. Add new modules here.
+const ASSETS = [
+  "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./css/styles.css",
+  "./js/main.js", "./js/util.js", "./js/save.js", "./js/audio.js", "./js/economy.js", "./js/state.js",
+  "./js/shell.js", "./js/generator.js", "./js/packing.js", "./js/boarding-logic.js", "./js/custom-bag.js",
+  "./js/builder.js", "./js/data/trivia-rounds.js",
+  "./js/modes/pack.js", "./js/modes/trivia.js", "./js/modes/boarding.js"
+];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));

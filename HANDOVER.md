@@ -1,9 +1,9 @@
 # Project Handover: Carry-On Tetris (Gate Edition)
 
 **Date:** 2026-10-23  
-**Current Version:** v0.4.1  
+**Current Version:** v0.5  
 **Status:** Playable, tested, zero-dependency client-side PWA  
-**Stack:** Vanilla HTML5, CSS3, ES6 JavaScript, Web Audio API, Web Haptics, Service Worker (network-first, offline fallback)  
+**Stack:** Vanilla HTML5, CSS3, ES modules (no build step), Web Audio API, Web Haptics, Service Worker (network-first, offline fallback)  
 
 ---
 
@@ -17,17 +17,20 @@ In v0.3 & v0.4, the suite was upgraded from a 2-mode prototype (v0.2) to a compl
 
 ## 2. File Structure
 
-| File | Purpose |
-|---|---|
-| [`index.html`](index.html) | Main single-file application containing CSS styling, SVG assets, HTML layout, and all game engine logic. |
-| [`manifest.webmanifest`](manifest.webmanifest) | PWA Web App Manifest for mobile installation ("Add to Home Screen"). |
-| [`sw.js`](sw.js) | Offline Service Worker caching `index.html`, `manifest.webmanifest`, and `icon.svg`. |
-| [`icon.svg`](icon.svg) | High-res vector app icon (carry-on suitcase packed with tetromino blocks). |
-| [`docs/archive/SPEC.md`](docs/archive/SPEC.md) | Initial technical design document (v0.2, archived). |
-| [`docs/archive/antigravity_handover_spec.md`](docs/archive/antigravity_handover_spec.md) | Previous v0.2 handover document (archived). |
-| [`HANDOVER.md`](HANDOVER.md) | **(This file)** Complete status and continuation instructions for v0.4.1. |
+Since v0.5 the game is split into ES modules (no bundler). The game logic that doesn't touch the page is in pure modules that run under Node, so it can be unit-tested. See [`README.md`](README.md) for the full table.
 
-*Note: The redundant clone `carry_on_tetris.html` was removed from git.*
+| Path | Purpose |
+|---|---|
+| [`index.html`](index.html) | Page markup only. Buttons declare `data-action` / `data-arg`; `js/main.js` maps them to functions. |
+| [`css/styles.css`](css/styles.css) | All styling. |
+| [`js/main.js`](js/main.js) | Entry point: action map, keyboard shortcuts, share-link listener, boot. |
+| [`js/modes/`](js/modes) | `pack.js` (Carry-On Tetris), `trivia.js` (Where Are We Flying?), `boarding.js` (Boarding Group Shuffle). Each exports a `…Header()` used by `js/shell.js`. |
+| [`js/generator.js`](js/generator.js), [`js/packing.js`](js/packing.js), [`js/boarding-logic.js`](js/boarding-logic.js), [`js/custom-bag.js`](js/custom-bag.js) | Pure logic: bag generator and content, placement rules and balance, sliding-puzzle solver, share links. |
+| [`js/save.js`](js/save.js) | Versioned save data (`migrateSave`). |
+| [`js/state.js`](js/state.js) | The only cross-mode state: active mode, connected itinerary, custom bag. |
+| [`sw.js`](sw.js) | Offline service worker; its `ASSETS` list must include every module (enforced by `tests/unit/sw-assets.test.js`). |
+| [`tests/`](tests) | `unit/` (Node test runner) and `e2e/` (Playwright, clicks through the real UI). |
+| [`docs/archive/`](docs/archive) | v0.2 design documents. |
 
 ---
 
@@ -84,6 +87,12 @@ In v0.3 & v0.4, the suite was upgraded from a 2-mode prototype (v0.2) to a compl
 7. **Honesty:** the Daily leaderboard is labelled as sample scores — the other travelers are generated, not real players.
 8. **Save versioning:** saves carry `version` and are upgraded through `migrateSave()`.
 
+### 🧱 What Changed in v0.5
+1. **Modules:** the single 3,400-line `index.html` is split into `css/styles.css` and ES modules under `js/` (no build step). Inline `onclick` handlers became `data-action` attributes handled by one click listener.
+2. **Tests:** 29 unit tests (generator solvability for every level and a year of daily bags, placement rules, the sliding-puzzle solver, share links, save migration, offline asset list) and 11 Playwright end-to-end tests (3-star pack, keyboard, touch, trivia, connected trip, Boarding miles cap, shared links, offline).
+3. **Tooling:** `package.json` with `npm start`, `npm test`, `npm run test:e2e` and `npm run lint` (ESLint); CI on every pull request.
+4. **Hardening:** share-link airport codes are letters only.
+
 ---
 
 ## 4. Save Data Schema (`localStorage`)
@@ -122,20 +131,11 @@ Key: `gate_suite_save_v3`
 
 ## 5. How to Run & Verify
 
-1. **Launch Local Server:**
-   ```bash
-   # From the repository root
-   npx serve .
-   # or python3 -m http.server 8080
-   ```
-2. **Access in Browser:**
-   - Navigate to `http://localhost:8080` (or active port).
-   - Test responsive viewport (`375x667` or `430x932` mobile simulation).
-3. **Test Checklist:**
-   - [x] Pack SFO ✈ LAX bag: rotate items, preview with mouse/touch, achieve 3 stars.
-   - [x] Test Undo (`↩️`) and Hint (`💡`).
-   - [x] Accept and leave Gate Agent Curveball item.
-   - [x] Follow Connected Itinerary (`1. Pack ➔ 2. Route ➔ 3. Board`) for +300 MI bonus and `🎫` chip badge.
-   - [x] Open **🛠️ Custom Bag & Daily Board**: design a custom bag, toggle blocked cells, play & share via URL hash, and check the Daily Leaderboard.
-   - [x] Open **🛍️ Shop**: verify lifetime miles, tiers, and skin purchases.
-   - [x] Toggle sound (`🔊`) and verify Web Audio beeps.
+```bash
+npm start              # serve at http://localhost:8080 (ES modules need http, not file://)
+npm install            # dev tools: ESLint + Playwright
+npm run lint && npm test
+npx playwright install chromium && npm run test:e2e
+```
+
+The end-to-end suite covers the old manual checklist (packing to 3 stars, undo/hints/keyboard, curveball, connected itinerary, custom bags, offline). Still worth a manual pass on a real phone: haptics, sound, and Add to Home Screen.
