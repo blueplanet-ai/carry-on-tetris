@@ -1,5 +1,5 @@
 // Network-first service worker: always fresh when online, fully playable offline at the gate.
-const CACHE = "carry-on-v7";
+const CACHE = "gate-games-v8";
 // Everything the game needs to run offline. Add new modules here.
 const ASSETS = [
   "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./css/styles.css",

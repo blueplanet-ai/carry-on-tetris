@@ -28,5 +28,5 @@ export function startServer(port = 8080) {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const port = Number(process.env.PORT) || 8080;
-  startServer(port).then(() => console.log(`Carry-On Tetris at http://localhost:${port}`));
+  startServer(port).then(() => console.log(`Gate Games at http://localhost:${port}`));
 }

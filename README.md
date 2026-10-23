@@ -1,4 +1,4 @@
-# Carry-On Tetris — Gate Edition
+# Gate Games
 
 A cozy, one-thumb airport gate game suite: pack a carry-on under TSA rules, guess where the flight is headed, and line up boarding groups. Works offline as an installable web app, with no runtime dependencies or build step.
 
