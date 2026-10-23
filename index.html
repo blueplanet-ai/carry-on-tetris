@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon.svg" />
-  <title>Carry-On Tetris — Gate Edition (v0.3)</title>
+  <title>Carry-On Tetris — Gate Edition (v0.4)</title>
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -206,6 +206,90 @@
     .level-chip.locked { opacity: 0.4; cursor: not-allowed; }
     .level-chip.daily { border-color: rgba(56, 189, 248, 0.55); }
     .level-chip.daily.active { background: rgba(56, 189, 248, 0.14); border-color: var(--sky-blue); }
+    .level-chip.custom { border-color: rgba(168, 85, 247, 0.65); }
+    .level-chip.custom.active { background: rgba(168, 85, 247, 0.16); border-color: #c084fc; }
+
+    /* ---------- Itinerary Banner & Custom Builder ---------- */
+    .itinerary-bar {
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.14) 0%, rgba(245, 158, 11, 0.12) 100%);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 9px;
+      padding: 6px 10px;
+      display: none;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .itinerary-bar.show { display: flex; }
+    .itinerary-steps { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; }
+    .itinerary-step { padding: 2px 6px; border-radius: 5px; background: #0f172a; color: var(--text-muted); border: 1px solid #334155; }
+    .itinerary-step.done { border-color: var(--valid); color: #6ee7b7; background: rgba(16, 185, 129, 0.15); }
+    .itinerary-step.active { border-color: var(--accent); color: var(--accent); }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .form-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.7rem; color: var(--text-muted); font-weight: 700; }
+    .form-field input, .form-field select {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 7px 9px;
+      color: var(--text-main);
+      font-size: 0.8rem;
+      font-weight: 700;
+      font-family: inherit;
+    }
+    .builder-mini-grid {
+      display: grid;
+      gap: 4px;
+      width: 100%;
+      max-width: 240px;
+      margin: 4px auto;
+      background: #0f172a;
+      padding: 8px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+    }
+    .builder-cell {
+      aspect-ratio: 1;
+      border-radius: 5px;
+      background: #334155;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      border: 1.5px solid transparent;
+    }
+    .builder-cell.blocked {
+      background: repeating-linear-gradient(45deg, #0f172a, #0f172a 5px, #1e293b 5px, #1e293b 10px);
+      border-color: #ef4444;
+    }
+    .leaderboard-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .lb-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.73rem;
+      padding: 4px 6px;
+      border-radius: 6px;
+      background: rgba(30, 41, 59, 0.6);
+    }
+    .lb-row.me {
+      background: rgba(56, 189, 248, 0.16);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      font-weight: 800;
+    }
 
     /* ---------- Banners ---------- */
     .rule-banner {
@@ -730,8 +814,20 @@
           <span style="font-size:0.6rem; opacity:0.85;">MI</span>
         </div>
         <span class="badge" id="levelBadge">Bag 1/6</span>
+        <button class="icon-btn" id="btnBuilder" onclick="openBuilder()" aria-label="Custom Bag Builder & Daily Leaderboard" title="Custom Bag & Daily Board">🛠️</button>
         <button class="icon-btn" id="btnShop" onclick="openShop()" aria-label="Open miles shop" title="Miles Shop">🛍️</button>
         <button class="icon-btn" id="btnSound" onclick="toggleSound()" aria-label="Toggle sound and haptics" title="Sound & haptics">🔊</button>
+      </div>
+    </div>
+
+    <div class="itinerary-bar" id="itineraryBar">
+      <span id="itineraryLabel">🎫 Connected Leg: SFO ➔ LAX</span>
+      <div class="itinerary-steps">
+        <span class="itinerary-step" id="itinStepPack">1. Pack</span>
+        <span>➔</span>
+        <span class="itinerary-step" id="itinStepTrivia">2. Route</span>
+        <span>➔</span>
+        <span class="itinerary-step" id="itinStepBoard">3. Board</span>
       </div>
     </div>
 
@@ -885,7 +981,10 @@
         <div class="win-title" id="triviaWinTitle">🎯 Flight Routed!</div>
         <div class="win-sub" id="triviaWinSub">Boarding pass verified.</div>
       </div>
-      <button class="btn btn-primary" id="btnNextTrivia" style="flex: 0 0 auto; padding: 8px 14px;" onclick="nextTriviaRound()">Next Flight ➔</button>
+      <div class="win-actions">
+        <button class="btn btn-primary" id="btnNextTrivia" onclick="nextTriviaRound()">Next Flight ➔</button>
+        <button class="btn btn-ghost" id="btnBoardFlight" onclick="continueToBoarding()" style="display:none;">🚶 Board Flight</button>
+      </div>
     </div>
   </section>
 
@@ -914,10 +1013,75 @@
         <div class="win-title" id="shuffleWinTitle">✅ Boarding Complete!</div>
         <div class="win-sub" id="shuffleWinSub">Everyone's in order.</div>
       </div>
-      <button class="btn btn-primary" id="btnNextShuffle" style="flex: 0 0 auto; padding: 8px 14px;" onclick="newShuffle()">Next Gate ➔</button>
+      <div class="win-actions">
+        <button class="btn btn-primary" id="btnNextShuffle" onclick="newShuffle()">Next Gate ➔</button>
+        <button class="btn btn-ghost" id="btnNextItineraryBag" onclick="completeItineraryAndNextBag()" style="display:none;">🧳 Next Leg Bag</button>
+      </div>
     </div>
   </section>
 </main>
+
+<!-- Custom Bag Builder & Daily Leaderboard Modal -->
+<div class="modal" id="builderModal" onclick="if (event.target === this) closeBuilder()">
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="builderTitle">
+    <div class="modal-head">
+      <h2 id="builderTitle">🛠️ Custom Bag &amp; Daily Board</h2>
+      <button class="icon-btn" id="btnCloseBuilder" onclick="closeBuilder()" aria-label="Close builder">✕</button>
+    </div>
+
+    <div class="section-label">📅 Daily Flight Leaderboard (<span id="lbDateLabel">Today</span>)</div>
+    <div class="leaderboard-card" id="dailyLeaderboard"></div>
+    <div style="display:flex; gap:6px;">
+      <button class="btn btn-xs btn-accent-outline" onclick="shareDailyResult()">📋 Copy Daily Score Card</button>
+      <button class="btn btn-xs" onclick="closeBuilder(); loadLevel('daily');">📅 Play Daily Bag</button>
+    </div>
+
+    <div class="section-label">🧰 Procedural Bag Customizer (Level Editor)</div>
+    <div class="form-grid">
+      <label class="form-field">Origin IATA
+        <input type="text" id="custOrigin" maxlength="3" value="SFO" oninput="this.value=this.value.toUpperCase()" />
+      </label>
+      <label class="form-field">Destination IATA
+        <input type="text" id="custDest" maxlength="3" value="NRT" oninput="this.value=this.value.toUpperCase()" />
+      </label>
+      <label class="form-field">Suitcase Size
+        <select id="custSize" onchange="rebuildCustomPreviewGrid()">
+          <option value="4x5">4 × 5 (Compact)</option>
+          <option value="4x6">4 × 6 (Standard)</option>
+          <option value="5x6" selected>5 × 6 (Carry-On)</option>
+          <option value="5x7">5 × 7 (Expandable)</option>
+          <option value="6x7">6 × 7 (Long-Haul)</option>
+        </select>
+      </label>
+      <label class="form-field">Destination Theme
+        <select id="custTheme">
+          <option value="weekend">Weekend Escape</option>
+          <option value="island">Island Hopper</option>
+          <option value="london">Business Red-Eye</option>
+          <option value="marrakech">Souk Spree</option>
+          <option value="hokkaido">Winter Ski Trip</option>
+          <option value="sydney">Down Under Haul</option>
+        </select>
+      </label>
+      <label class="form-field">TSA / Heavy Rules
+        <select id="custRules">
+          <option value="light">Relaxed (1 Top, 1 Heavy)</option>
+          <option value="normal" selected>Standard (2 Top, 1 Bot, 1 Frag)</option>
+          <option value="strict">Strict TSA (2 Top, 1 Bot, 1 Hvy, 2 Frag)</option>
+        </select>
+      </label>
+      <label class="form-field">Puzzle Seed
+        <input type="number" id="custSeed" value="777" min="1" max="99999" />
+      </label>
+    </div>
+    <div style="font-size:0.68rem; color:var(--text-muted); text-align:center;">Tap cells below to toggle blocked wheel housings / frame corners:</div>
+    <div class="builder-mini-grid" id="builderMiniGrid"></div>
+    <div style="display:flex; gap:7px;">
+      <button class="btn btn-primary" onclick="playCustomBagFromModal()">▶️ Play Custom Bag</button>
+      <button class="btn btn-accent-outline" onclick="shareCustomBagUrl()">🔗 Share URL</button>
+    </div>
+  </div>
+</div>
 
 <!-- Miles Shop -->
 <div class="modal" id="shopModal" onclick="if (event.target === this) closeShop()">
@@ -1003,6 +1167,8 @@
       skin: "classic",
       ownedSkins: ["classic"],
       bagStars: {},      // levelId -> star bitmask (1 packed, 2 balanced, 4 full)
+      dailyStats: {},    // dateKey -> { moves, balanceAbs, stars }
+      itineraries: {},   // levelId -> true (completed Pack + Route + Board)
       tetrisLevel: 0,
       triviaIdx: 0,
       triviaSolved: {},  // roundId -> true
@@ -1187,15 +1353,36 @@
   }
 
   /* =========================================================
-     MODE SWITCHING & HEADER
+     MODE SWITCHING, ITINERARIES & HEADER
      ========================================================= */
   let currentMode = "tetris";
+  let activeItinerary = null; // { levelIdx, bagId, origin, dest, nextDest, step: 1|2|3 }
+  let customBagCfg = null;
+
+  function syncItineraryBar() {
+    const bar = $("itineraryBar");
+    if (!activeItinerary) {
+      bar.classList.remove("show");
+      return;
+    }
+    bar.classList.add("show");
+    const { origin, dest, nextDest, step } = activeItinerary;
+    $("itineraryLabel").textContent = `🎫 Leg: ${origin} ✈ ${dest}${nextDest ? ` ✈ ${nextDest}` : ""}`;
+    const s1 = $("itinStepPack"), s2 = $("itinStepTrivia"), s3 = $("itinStepBoard");
+    s1.className = "itinerary-step" + (step > 1 ? " done" : " active");
+    s2.className = "itinerary-step" + (step > 2 ? " done" : step === 2 ? " active" : "");
+    s3.className = "itinerary-step" + (step > 3 ? " done" : step === 3 ? " active" : "");
+  }
 
   function syncBoardingHeader() {
     if (currentMode === "tetris" && levelCfg) {
       $("routeTitle").textContent = levelCfg.route;
       $("routeSubtitle").textContent = levelCfg.subtitle;
-      $("levelBadge").textContent = levelCfg.isDaily ? "📅 Daily" : `Bag ${currentLevelIdx + 1}/${LEVELS.length}`;
+      $("levelBadge").textContent = levelCfg.isDaily
+        ? "📅 Daily"
+        : levelCfg.isCustom
+        ? "🛠️ Custom"
+        : `Bag ${currentLevelIdx + 1}/${LEVELS.length}`;
     } else if (currentMode === "trivia") {
       const round = TRIVIA_ROUNDS[currentTriviaIdx];
       const destCode = triviaRoundOver ? round.answer : "???";
@@ -1204,10 +1391,16 @@
       $("routeSubtitle").textContent = `Where Are We Flying? • Routed ${solved}/${TRIVIA_ROUNDS.length}`;
       $("levelBadge").textContent = `Flight ${currentTriviaIdx + 1}/${TRIVIA_ROUNDS.length}`;
     } else if (currentMode === "shuffle") {
-      $("routeTitle").textContent = "GATE ➔ JET";
-      $("routeSubtitle").textContent = "Boarding Group Shuffle • Line up Groups 1–8";
+      if (activeItinerary && activeItinerary.step >= 3) {
+        $("routeTitle").textContent = `${activeItinerary.dest} ✈ ${activeItinerary.nextDest || "JET"}`;
+        $("routeSubtitle").textContent = `Connecting Gate Boarding • Complete leg for +300 MI Bonus!`;
+      } else {
+        $("routeTitle").textContent = "GATE ➔ JET";
+        $("routeSubtitle").textContent = "Boarding Group Shuffle • Line up Groups 1–8";
+      }
       $("levelBadge").textContent = `Line-Up #${save.shuffleSolved + 1}`;
     }
+    syncItineraryBar();
   }
 
   function switchMode(mode) {
@@ -1476,6 +1669,17 @@
       best = bag;
       if (bag.ok) break;
     }
+    if (!best) {
+      // Fallback with relaxed rules if custom blocked cells constrained role assignment
+      const relaxedCfg = { ...cfg, rules: { top: 1, bottomHeavy: 0, heavy: 0, fragile: 0 } };
+      for (let attempt = 0; attempt < 80; attempt++) {
+        const rng = mulberry32(cfg.seed * 977 + attempt * 7919);
+        const pieces = partitionGrid(cfg.rows, cfg.cols, blockedSet, rng);
+        if (!pieces) continue;
+        const bag = assignRoles(pieces, relaxedCfg, rng);
+        if (bag) { best = bag; break; }
+      }
+    }
     return buildItems(best, cfg);
   }
 
@@ -1558,6 +1762,7 @@
   let undoStack = [];
   let hintItemId = null;
   let lastPlacedId = null;
+  let packMoves = 0;
 
   // Input state (touch: tap-to-preview, tap-again-to-place)
   let lastPointerType = "mouse";
@@ -1572,11 +1777,20 @@
 
   function loadLevel(idx) {
     const daily = idx === "daily";
-    levelCfg = daily ? dailyConfig() : LEVELS[idx];
-    if (!daily) {
-      currentLevelIdx = idx;
-      save.tetrisLevel = idx;
+    const custom = idx === "custom";
+    if (daily) {
+      levelCfg = dailyConfig();
+      activeItinerary = null;
+    } else if (custom && customBagCfg) {
+      levelCfg = customBagCfg;
+      activeItinerary = null;
+    } else {
+      const nIdx = typeof idx === "number" ? idx : 0;
+      levelCfg = LEVELS[nIdx];
+      currentLevelIdx = nIdx;
+      save.tetrisLevel = nIdx;
       persist();
+      if (activeItinerary && activeItinerary.levelIdx !== nIdx) activeItinerary = null;
     }
     generated = generateBag(levelCfg);
 
@@ -1587,6 +1801,7 @@
     undoStack = [];
     hintItemId = null;
     lastPlacedId = null;
+    packMoves = 0;
 
     gridState = Array.from({ length: levelCfg.rows }, () => Array(levelCfg.cols).fill(null));
     levelCfg.blocked.forEach(([r, c]) => { gridState[r][c] = "BLOCKED"; });
@@ -1600,7 +1815,7 @@
     renderLevelStrip();
 
     const first = itemsState[0];
-    const intro = levelCfg.isDaily ? "📅 Daily Bag! " : "";
+    const intro = levelCfg.isDaily ? "📅 Daily Bag! " : levelCfg.isCustom ? "🛠️ Custom Bag! " : "";
     setStatus(`${intro}Fill every slot for ⭐⭐⭐. Selected ${first.emoji} ${first.name}: ${first.desc}`, "normal");
     renderAll();
   }
@@ -1913,6 +2128,7 @@
     snapshot();
     check.cells.forEach(([pr, pc]) => { gridState[pr][pc] = item.id; });
     item.packed = true;
+    packMoves++;
     lastPlacedId = item.id;
     if (hintItemId === item.id) hintItemId = null;
     fx.place();
@@ -2034,7 +2250,7 @@
   }
 
   function nextLevel() {
-    if (levelCfg.isDaily) { loadLevel(currentLevelIdx); return; }
+    if (levelCfg.isDaily || levelCfg.isCustom) { loadLevel(currentLevelIdx); return; }
     const nextIdx = currentLevelIdx + 1;
     if (nextIdx < LEVELS.length) loadLevel(nextIdx);
     else loadLevel("daily");
@@ -2047,9 +2263,20 @@
   function continueTrip() {
     const idx = tripRoundIndex();
     if (idx < 0) return;
+    if (!levelCfg.isDaily && !levelCfg.isCustom) {
+      const originCode = levelCfg.route.split(" ")[0];
+      activeItinerary = {
+        levelIdx: currentLevelIdx,
+        bagId: levelCfg.id,
+        origin: originCode,
+        dest: levelCfg.dest,
+        nextDest: TRIVIA_ROUNDS[idx].answer,
+        step: 2
+      };
+    }
     switchMode("trivia");
     loadTriviaRound(idx);
-    toast(`🛬 Landed in ${levelCfg.dest} — where to next?`);
+    toast(`🛬 Landed in ${levelCfg.dest} — route your onward connection!`);
   }
 
   function checkWin(silent = false) {
@@ -2067,6 +2294,21 @@
     const newBits = mask & ~prev;
     const earned = [1, 2, 4].reduce((sum, b) => sum + ((newBits & b) ? STAR_REWARDS[b] : 0), 0);
     save.bagStars[key] = prev | mask;
+
+    if (levelCfg.isDaily) {
+      const dKey = todayKey();
+      const prevStat = save.dailyStats[dKey];
+      const starsCount = popcount(mask);
+      const balScore = Math.round(100 - bal.abs);
+      if (
+        !prevStat ||
+        starsCount > prevStat.stars ||
+        (starsCount === prevStat.stars && packMoves < prevStat.moves)
+      ) {
+        save.dailyStats[dKey] = { moves: packMoves, balancePct: balScore, stars: starsCount, mask };
+      }
+    }
+
     persist();
     if (earned) addMiles(earned);
 
@@ -2074,7 +2316,7 @@
     $("winStars").innerHTML = [1, 2, 4].map(b => (mask & b) ? "★" : `<span class="dim">★</span>`).join("");
     $("winTitle").textContent = earned ? `✅ Carry-On Zipped! (+${earned} MI)` : "✅ Carry-On Zipped!";
 
-    const crit = [`<li class="ok">⭐ Packed within TSA rules</li>`];
+    const crit = [`<li class="ok">⭐ Packed within TSA rules (${packMoves} moves)</li>`];
     crit.push(bal.isBalanced
       ? `<li class="ok">⭐ Balanced, heavy items riding low</li>`
       : `<li>☆ ${bal.topHeavy ? "Top-heavy — move heavy items down" : `Leaning ${bal.shift < 0 ? "left" : "right"} — rebalance`}</li>`);
@@ -2087,8 +2329,8 @@
     const tripIdx = tripRoundIndex();
     const tripBtn = $("btnContinueTrip");
     tripBtn.style.display = tripIdx >= 0 ? "flex" : "none";
-    if (tripIdx >= 0) tripBtn.textContent = `🛫 Trivia from ${levelCfg.dest}`;
-    $("btnNextBag").textContent = levelCfg.isDaily
+    if (tripIdx >= 0) tripBtn.textContent = `🛫 Connect at ${levelCfg.dest} ➔`;
+    $("btnNextBag").textContent = levelCfg.isDaily || levelCfg.isCustom
       ? "Back to Bags ➔"
       : currentLevelIdx + 1 < LEVELS.length ? "Next Bag ➔" : "📅 Daily Bag ➔";
 
@@ -2101,6 +2343,7 @@
     setStatus(`🎉 ${starString(mask)} All items packed within TSA rules!`, "success");
     renderLevelStrip();
     updateCurveballBanner();
+    syncBoardingHeader();
     if (!silent) fx.win();
   }
 
@@ -2111,13 +2354,14 @@
     LEVELS.forEach((lv, i) => {
       const unlocked = isLevelUnlocked(i);
       const mask = save.bagStars[lv.id] || 0;
+      const itinDone = save.itineraries && save.itineraries[lv.id];
       const chip = document.createElement("button");
       chip.id = `levelChip-${i}`;
       chip.className = "level-chip";
-      if (!levelCfg.isDaily && i === currentLevelIdx) chip.classList.add("active");
+      if (!levelCfg.isDaily && !levelCfg.isCustom && i === currentLevelIdx) chip.classList.add("active");
       if (!unlocked) chip.classList.add("locked");
-      chip.innerHTML = `<span>${unlocked ? "" : "🔒 "}${lv.dest}</span><span class="chip-stars">${starString(mask)}</span>`;
-      chip.title = lv.route;
+      chip.innerHTML = `<span>${unlocked ? (itinDone ? "🎫 " : "") : "🔒 "}${lv.dest}</span><span class="chip-stars">${starString(mask)}</span>`;
+      chip.title = lv.route + (itinDone ? " • Full Itinerary Completed" : "");
       chip.onclick = () => {
         if (!unlocked) { setStatus(`🔒 Pack bag ${i} first to unlock ${lv.route}.`, "error"); fx.error(); return; }
         fx.tap();
@@ -2133,6 +2377,16 @@
     daily.innerHTML = `<span>📅 Daily</span><span class="chip-stars">${starString(dailyMask)}</span>`;
     daily.onclick = () => { fx.tap(); loadLevel("daily"); };
     strip.appendChild(daily);
+
+    if (customBagCfg) {
+      const custMask = save.bagStars[customBagCfg.id] || 0;
+      const cust = document.createElement("button");
+      cust.id = "levelChip-custom";
+      cust.className = "level-chip custom" + (levelCfg.isCustom ? " active" : "");
+      cust.innerHTML = `<span>🛠️ ${customBagCfg.dest}</span><span class="chip-stars">${starString(custMask)}</span>`;
+      cust.onclick = () => { fx.tap(); loadLevel("custom"); };
+      strip.appendChild(cust);
+    }
 
     const active = strip.querySelector(".active");
     if (active) active.scrollIntoView({ block: "nearest", inline: "center" });
@@ -2546,6 +2800,18 @@
         : triviaPractice ? `✅ ${city} (${iata}) — practice round complete.` : `✅ ${city} (${iata}) — pool was empty, fewer guesses next time!`, "success");
       $("triviaWinTitle").textContent = earned ? `🎯 Routed to ${iata}! (+${earned} MI)` : `🎯 Routed to ${iata}!`;
       $("triviaWinSub").textContent = `${city} • Boarding pass verified.`;
+
+      const boardBtn = $("btnBoardFlight");
+      if (activeItinerary && activeItinerary.dest === round.origin) {
+        activeItinerary.nextDest = round.answer;
+        activeItinerary.step = 3;
+        syncBoardingHeader();
+        boardBtn.style.display = "inline-flex";
+        boardBtn.textContent = `🚶 Board ${round.origin} ✈ ${round.answer}`;
+      } else {
+        boardBtn.style.display = "none";
+      }
+
       $("triviaWinBanner").classList.add("show");
     } else {
       btnEl.classList.add("wrong");
@@ -2567,6 +2833,14 @@
       if (!save.triviaSolved[TRIVIA_ROUNDS[idx].id]) { loadTriviaRound(idx); return; }
     }
     loadTriviaRound((currentTriviaIdx + 1) % n);
+  }
+
+  function continueToBoarding() {
+    switchMode("shuffle");
+    newShuffle();
+    if (activeItinerary) {
+      toast(`🚶 Boarding ${activeItinerary.dest} ✈ ${activeItinerary.nextDest} — line up Groups 1–8!`);
+    }
   }
 
   /* =========================================================
@@ -2687,18 +2961,252 @@
 
     if (shuffleSolvedState(shuffleTiles)) {
       shuffleDone = true;
-      const earned = shuffleMoves <= SHUFFLE_PAR ? 400 : 200;
+      let earned = shuffleMoves <= SHUFFLE_PAR ? 400 : 200;
+      let itinBonus = 0;
+      const nextBagBtn = $("btnNextItineraryBag");
+      if (activeItinerary && activeItinerary.step === 3) {
+        activeItinerary.step = 4;
+        if (!save.itineraries[activeItinerary.bagId]) {
+          save.itineraries[activeItinerary.bagId] = true;
+          itinBonus = 300;
+          earned += itinBonus;
+        }
+        nextBagBtn.style.display = "inline-flex";
+        const nextIdx = activeItinerary.levelIdx + 1;
+        nextBagBtn.textContent = nextIdx < LEVELS.length ? `🧳 Pack ${LEVELS[nextIdx].dest} Bag ➔` : "📅 Daily Bag ➔";
+      } else {
+        nextBagBtn.style.display = "none";
+      }
       save.shuffleSolved++;
       persist();
       addMiles(earned);
+      syncBoardingHeader();
+      renderLevelStrip();
       fx.win();
-      setShuffleStatus(`✅ All groups lined up in ${shuffleMoves} moves! +${earned} Miles.`, "success");
+      setShuffleStatus(`✅ All groups lined up in ${shuffleMoves} moves! +${earned} Miles${itinBonus ? " (incl. +300 MI Itinerary Bonus!)" : ""}.`, "success");
       $("shuffleWinTitle").textContent = `✅ Boarding Complete! (+${earned} MI)`;
       $("shuffleWinSub").textContent = shuffleMoves <= SHUFFLE_PAR ? `Under par (${SHUFFLE_PAR}) — on-time departure!` : `${shuffleMoves} moves — a little delayed, but boarded.`;
       $("shuffleWinBanner").classList.add("show");
     } else {
       setShuffleStatus(`🚶 Keep going — ${shuffleTiles.filter((t, i) => t === i + 1).length}/8 passengers in place.`);
     }
+  }
+
+  function completeItineraryAndNextBag() {
+    const nextIdx = activeItinerary ? activeItinerary.levelIdx + 1 : currentLevelIdx + 1;
+    activeItinerary = null;
+    switchMode("tetris");
+    if (nextIdx < LEVELS.length) loadLevel(nextIdx);
+    else loadLevel("daily");
+  }
+
+  /* =========================================================
+     CUSTOM BAG BUILDER, URL HASH SHARING & DAILY LEADERBOARD
+     ========================================================= */
+  let builderBlocked = new Set(["4,0", "4,5"]);
+
+  const RULE_PRESETS = {
+    light: { top: 1, bottomHeavy: 0, heavy: 1, fragile: 0 },
+    normal: { top: 2, bottomHeavy: 1, heavy: 0, fragile: 1 },
+    strict: { top: 2, bottomHeavy: 1, heavy: 1, fragile: 2 }
+  };
+
+  function openBuilder() {
+    renderDailyLeaderboard();
+    rebuildCustomPreviewGrid();
+    $("builderModal").classList.add("show");
+    fx.tap();
+  }
+
+  function closeBuilder() {
+    $("builderModal").classList.remove("show");
+  }
+
+  function rebuildCustomPreviewGrid() {
+    const [rows, cols] = $("custSize").value.split("x").map(Number);
+    const grid = $("builderMiniGrid");
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    grid.innerHTML = "";
+    // Remove out-of-bounds blocked coordinates
+    [...builderBlocked].forEach(k => {
+      const [r, c] = k.split(",").map(Number);
+      if (r >= rows || c >= cols) builderBlocked.delete(k);
+    });
+    const maxBlocked = Math.max(0, rows * cols - 12);
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const key = `${r},${c}`;
+        const cell = document.createElement("div");
+        cell.className = "builder-cell" + (builderBlocked.has(key) ? " blocked" : "");
+        cell.textContent = builderBlocked.has(key) ? "✕" : "";
+        cell.onclick = () => {
+          if (builderBlocked.has(key)) {
+            builderBlocked.delete(key);
+          } else {
+            if (builderBlocked.size >= maxBlocked) {
+              toast("Keep at least 12 free slots in the bag!");
+              fx.error();
+              return;
+            }
+            builderBlocked.add(key);
+          }
+          fx.tap();
+          rebuildCustomPreviewGrid();
+        };
+        grid.appendChild(cell);
+      }
+    }
+  }
+
+  function buildCustomConfigFromInputs() {
+    const origin = ($("custOrigin").value.trim().toUpperCase() || "SFO").slice(0, 3);
+    const dest = ($("custDest").value.trim().toUpperCase() || "NRT").slice(0, 3);
+    const [rows, cols] = $("custSize").value.split("x").map(Number);
+    const theme = $("custTheme").value || "weekend";
+    const ruleKey = $("custRules").value || "normal";
+    const seed = Math.max(1, Math.min(99999, Number($("custSeed").value) || 777));
+    const blocked = [...builderBlocked]
+      .map(k => k.split(",").map(Number))
+      .filter(([r, c]) => r >= 0 && r < rows && c >= 0 && c < cols);
+
+    return {
+      id: `custom-${origin}-${dest}-${rows}x${cols}-${seed}`,
+      route: `${origin} ✈ ${dest}`,
+      origin,
+      dest,
+      subtitle: `🛠️ Custom Flight Bag • Seed #${seed}`,
+      rows,
+      cols,
+      blocked,
+      rules: RULE_PRESETS[ruleKey] || RULE_PRESETS.normal,
+      ruleKey,
+      seed,
+      theme,
+      isCustom: true
+    };
+  }
+
+  function encodeCustomHash(cfg) {
+    const bStr = cfg.blocked.map(([r, c]) => `${r}.${c}`).join("_");
+    const params = new URLSearchParams({
+      custom: "1",
+      o: cfg.origin || cfg.route.split(" ")[0],
+      d: cfg.dest,
+      r: String(cfg.rows),
+      c: String(cfg.cols),
+      t: cfg.theme,
+      k: cfg.ruleKey || "normal",
+      s: String(cfg.seed),
+      b: bStr
+    });
+    return "#" + params.toString();
+  }
+
+  function parseCustomHash() {
+    if (!location.hash || location.hash.length < 2) return null;
+    try {
+      const params = new URLSearchParams(location.hash.slice(1));
+      if (params.get("custom") !== "1") return null;
+      const origin = (params.get("o") || "SFO").toUpperCase().slice(0, 3);
+      const dest = (params.get("d") || "NRT").toUpperCase().slice(0, 3);
+      const rows = Math.max(4, Math.min(6, Number(params.get("r")) || 5));
+      const cols = Math.max(5, Math.min(7, Number(params.get("c")) || 6));
+      const theme = THEMES[params.get("t")] ? params.get("t") : "weekend";
+      const ruleKey = RULE_PRESETS[params.get("k")] ? params.get("k") : "normal";
+      const seed = Math.max(1, Math.min(99999, Number(params.get("s")) || 777));
+      const bRaw = params.get("b") || "";
+      const blocked = bRaw
+        ? bRaw.split("_").map(p => p.split(".").map(Number)).filter(([r, c]) => r >= 0 && r < rows && c >= 0 && c < cols)
+        : [];
+      return {
+        id: `custom-${origin}-${dest}-${rows}x${cols}-${seed}`,
+        route: `${origin} ✈ ${dest}`,
+        origin,
+        dest,
+        subtitle: `🛠️ Shared Custom Bag • Seed #${seed}`,
+        rows,
+        cols,
+        blocked,
+        rules: RULE_PRESETS[ruleKey],
+        ruleKey,
+        seed,
+        theme,
+        isCustom: true
+      };
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function playCustomBagFromModal() {
+    customBagCfg = buildCustomConfigFromInputs();
+    try { history.replaceState(null, "", encodeCustomHash(customBagCfg)); } catch (e) { /* ignore */ }
+    closeBuilder();
+    switchMode("tetris");
+    loadLevel("custom");
+    toast(`🧳 Loaded custom bag: ${customBagCfg.route}`);
+  }
+
+  function shareCustomBagUrl() {
+    customBagCfg = buildCustomConfigFromInputs();
+    const hash = encodeCustomHash(customBagCfg);
+    try { history.replaceState(null, "", hash); } catch (e) { /* ignore */ }
+    const url = location.origin + location.pathname + hash;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => toast("🔗 Custom bag URL copied to clipboard!"));
+    } else {
+      toast(`🔗 URL ready in address bar!`);
+    }
+    fx.coin();
+  }
+
+  function renderDailyLeaderboard() {
+    const key = todayKey();
+    $("lbDateLabel").textContent = key;
+    const rng = mulberry32(hashStr("lb-" + key));
+    const callsigns = ["Capt. Lin (SFO)", "FirstClassFox", "GateB14_Pro", "JetBridgeJay", "AisleSeatAmy", "RedEyeRory"];
+    const entries = [];
+    for (let i = 0; i < 4; i++) {
+      const name = callsigns[Math.floor(rng() * callsigns.length)] + ` #${10 + Math.floor(rng() * 89)}`;
+      const stars = i < 2 ? 3 : 2;
+      const moves = 7 + i * 2 + Math.floor(rng() * 3);
+      const balancePct = 96 - i * 4 - Math.floor(rng() * 3);
+      entries.push({ name, stars, moves, balancePct, isMe: false });
+    }
+    const myStat = save.dailyStats && save.dailyStats[key];
+    if (myStat) {
+      entries.push({
+        name: "✈️ You (Gate Traveler)",
+        stars: myStat.stars,
+        moves: myStat.moves,
+        balancePct: myStat.balancePct,
+        isMe: true
+      });
+    }
+    entries.sort((a, b) => (b.stars - a.stars) || (a.moves - b.moves) || (b.balancePct - a.balancePct));
+
+    const el = $("dailyLeaderboard");
+    el.innerHTML = entries.map((e, idx) => `
+      <div class="lb-row${e.isMe ? " me" : ""}">
+        <span>#${idx + 1} ${e.name}</span>
+        <span>${"★".repeat(e.stars)}${"☆".repeat(3 - e.stars)} • ${e.moves}m • ⚖️${e.balancePct}%</span>
+      </div>
+    `).join("") + (!myStat ? `<div style="font-size:0.66rem; color:var(--text-muted); text-align:center; padding-top:2px;">Pack today's 📅 Daily Bag to post your score!</div>` : "");
+  }
+
+  function shareDailyResult() {
+    const key = todayKey();
+    const st = save.dailyStats && save.dailyStats[key];
+    const stars = st ? "⭐".repeat(st.stars) : "☆☆☆ (Unpacked)";
+    const details = st ? `${st.moves} moves • ${st.balancePct}% balance` : "Try today's gate challenge!";
+    const text = `🧳 Carry-On Tetris 📅 Daily (${key})\n${stars} — ${details}`;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => toast("📋 Daily scorecard copied!"));
+    } else {
+      toast(text);
+    }
+    fx.tap();
   }
 
   /* =========================================================
@@ -2709,11 +3217,25 @@
       if (e.key === "Escape") closeShop();
       return;
     }
+    if ($("builderModal").classList.contains("show")) {
+      if (e.key === "Escape") closeBuilder();
+      return;
+    }
     if (currentMode !== "tetris" || e.metaKey && e.key !== "z") return;
     const k = e.key.toLowerCase();
     if (k === "r") rotateSelected();
     else if (k === "z") { e.preventDefault(); undo(); }
     else if (k === "h") useHint();
+  });
+
+  window.addEventListener("hashchange", () => {
+    const parsed = parseCustomHash();
+    if (parsed) {
+      customBagCfg = parsed;
+      switchMode("tetris");
+      loadLevel("custom");
+      toast(`🧳 Loaded shared bag: ${parsed.route}`);
+    }
   });
 
   /* =========================================================
@@ -2723,8 +3245,14 @@
   updateMilesDisplay();
   updateSoundIcon();
   initGridInput();
-  const startLevel = Math.min(save.tetrisLevel || 0, LEVELS.length - 1);
-  loadLevel(isLevelUnlocked(startLevel) ? startLevel : 0);
+  const initialCustom = parseCustomHash();
+  if (initialCustom) {
+    customBagCfg = initialCustom;
+    loadLevel("custom");
+  } else {
+    const startLevel = Math.min(save.tetrisLevel || 0, LEVELS.length - 1);
+    loadLevel(isLevelUnlocked(startLevel) ? startLevel : 0);
+  }
   loadTriviaRound(Math.min(save.triviaIdx || 0, TRIVIA_ROUNDS.length - 1));
   newShuffle();
   switchMode("tetris");

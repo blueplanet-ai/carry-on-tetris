@@ -1,7 +1,7 @@
 # Project Handover: Carry-On Tetris (Gate Edition)
 
 **Date:** 2026-10-22  
-**Current Version:** v0.3  
+**Current Version:** v0.4  
 **Status:** Playable, tested, zero-dependency client-side PWA  
 **Stack:** Vanilla HTML5, CSS3, ES6 JavaScript, Web Audio API, Web Haptics, Service Worker (Cache-first/Network-first)  
 **Location:** `/Users/chuhee/Documents/Antigravity/carry-on-tetris`
@@ -12,7 +12,7 @@
 
 Carry-On Tetris is an airport gate game suite designed for travelers waiting at boarding gates. It caters to **single-thumb mobile play**, **zero reflex/interruptible game loops**, and **spotty airport Wi-Fi**.
 
-In this iteration (v0.3), the suite was upgraded from a 2-mode prototype (v0.2) to a complete 3-mode offline-ready PWA with balanced puzzle generation, economy progression, sound design, and bug fixes.
+In v0.3 & v0.4, the suite was upgraded from a 2-mode prototype (v0.2) to a complete 3-mode offline-ready PWA with balanced puzzle generation, economy progression, sound design, multi-leg flight route connections, a daily flight leaderboard, and a shareable procedural bag customizer / level editor.
 
 ---
 
@@ -62,7 +62,18 @@ In this iteration (v0.3), the suite was upgraded from a 2-mode prototype (v0.2) 
    - Status tiers: Economy ➔ Premium Economy ➔ Business ➔ First Class.
    - 5 Suitcase themes: Classic Slate, Sunset Coral, Aviator Leather, Neon Jetset, First Class Gold.
 - **Audio & Haptics:** Custom synthesizer built on Web Audio API (sine/triangle oscillators) with haptic feedback (`navigator.vibrate`) and global mute toggle (`🔊`/`🔇`).
-- **Offline / PWA Ready:** Standalone manifest and service worker.
+- **Offline / PWA Ready:** Standalone manifest and service worker (`carry-on-v4`).
+
+### 🚀 What Was Added in v0.4
+1. **Procedural Mode 1 Bag Customizer / Level Editor (`🛠️`):**
+   - Interactive modal allowing players to customize Origin/Destination IATA codes, Suitcase dimensions (`4x5` up to `6x7`), Destination theme, TSA/Heavy rule strictness, Puzzle seed, and tap-to-toggle blocked wheel/frame cells.
+   - Generates a guaranteed-solvable 100%-full bag and encodes/decodes the entire custom level via URL hash parameters (`#custom=1&o=SFO&d=NRT...`) for one-click sharing (`🔗 Share URL`).
+2. **Daily Flight Bag Leaderboard & Scorecard Sharing:**
+   - Tracks daily packing move count (`packMoves`), center-of-gravity balance percentage (`balancePct`), and stars earned (`save.dailyStats`).
+   - Displays a date-seeded Gate Leaderboard in the `🛠️` modal comparing the player's daily run against gate travelers, plus a one-click **📋 Copy Daily Score Card** button.
+3. **Connected Multi-Leg Flight Itinerary System (`1. Pack ➔ 2. Route ➔ 3. Board`):**
+   - Packing a destination bag unlocks a connected onward itinerary banner (`#itineraryBar`).
+   - Players transition from **1. Pack** (`🛫 Connect at <DEST> ➔`) to **2. Route** (Trivia leg departing that destination) and then **3. Board** (`🚶 Board <ORIGIN> ✈ <DEST>` in Boarding Group Shuffle), earning a **+300 MI Itinerary Completion Bonus** and a `🎫` badge on the level chip.
 
 ---
 
@@ -80,6 +91,12 @@ Key: `gate_suite_save_v3`
   "bagStars": {
     "sfo-lax": 7,
     "daily-2026-10-22": 3
+  },
+  "dailyStats": {
+    "2026-10-22": { "moves": 8, "balancePct": 94, "stars": 3, "mask": 7 }
+  },
+  "itineraries": {
+    "sfo-lax": true
   },
   "tetrisLevel": 0,
   "triviaIdx": 0,
@@ -104,24 +121,10 @@ Key: `gate_suite_save_v3`
    - Navigate to `http://localhost:8080` (or active port).
    - Test responsive viewport (`375x667` or `430x932` mobile simulation).
 3. **Test Checklist:**
-   - [ ] Pack SFO ✈ LAX bag: rotate items, preview with mouse/touch, achieve 3 stars.
-   - [ ] Test Undo (`↩️`) and Hint (`💡`).
-   - [ ] Accept and leave Gate Agent Curveball item.
-   - [ ] Switch to **🛫 Trivia**: test dynamic radar arc, 50/50 hint, clue reveal, and guess validation.
-   - [ ] Switch to **🚶 Boarding**: slide passenger rows into the jet bridge gap, verify move counter & par payout.
-   - [ ] Open **🛍️ Shop**: verify lifetime miles, tiers, and skin purchases.
-   - [ ] Toggle sound (`🔊`) and verify Web Audio beeps.
-
----
-
-## 6. Next Steps / Potential Future Backlog
-
-When you return with fresh quota, here are recommended enhancements:
-1. **Procedural Mode 1 Bag Customizer / Level Editor:** Allow players to design and share custom flight bags via URL hash query parameters.
-2. **Online Leaderboard for Daily Bag:** Light backend (Firebase/Cloudflare Worker) to compare daily move count & bag balance across travelers.
-3. **Flight Route Connections:** Deepen the multi-leg itinerary system (e.g. completing a 3-star pack automatically unlocks the onward flight leg in Trivia and Shuffle).
-4. **Git Commit:** Review unstaged files (`git status`) and commit:
-   ```bash
-   git add index.html icon.svg manifest.webmanifest sw.js HANDOVER.md
-   git commit -m "feat: release v0.3 airport gate game suite"
-   ```
+   - [x] Pack SFO ✈ LAX bag: rotate items, preview with mouse/touch, achieve 3 stars.
+   - [x] Test Undo (`↩️`) and Hint (`💡`).
+   - [x] Accept and leave Gate Agent Curveball item.
+   - [x] Follow Connected Itinerary (`1. Pack ➔ 2. Route ➔ 3. Board`) for +300 MI bonus and `🎫` chip badge.
+   - [x] Open **🛠️ Custom Bag & Daily Board**: design a custom bag, toggle blocked cells, play & share via URL hash, and check the Daily Leaderboard.
+   - [x] Open **🛍️ Shop**: verify lifetime miles, tiers, and skin purchases.
+   - [x] Toggle sound (`🔊`) and verify Web Audio beeps.

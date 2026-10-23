@@ -1,5 +1,5 @@
 // Network-first service worker: always fresh when online, fully playable offline at the gate.
-const CACHE = "carry-on-v3";
+const CACHE = "carry-on-v4";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (event) => {
