@@ -6,19 +6,23 @@ import { DIRS } from "./util.js";
 export function computeBalance(rows, cols, cells) {
   const centerCol = (cols - 1) / 2;
   const centerRow = (rows - 1) / 2;
-  let total = 0, torque = 0, heavyCount = 0, heavyRowSum = 0;
+  let total = 0, torque = 0, heavyCount = 0, heavyRowSum = 0, left = 0, right = 0;
   cells.forEach(({ r, c, rule }) => {
     const heavy = rule === "HEAVY" || rule === "BOTTOM_HEAVY";
     const mass = heavy ? 2.8 : rule === "FRAGILE" ? 0.8 : 1.2;
     total += mass;
     torque += mass * (c - centerCol);
+    // Weight over each wheel; a cell on the centre column rests on both
+    if (c < centerCol) left += mass;
+    else if (c > centerCol) right += mass;
+    else { left += mass / 2; right += mass / 2; }
     if (heavy) { heavyCount++; heavyRowSum += r; }
   });
   const maxTorque = 3 * cols;
   const shift = Math.max(-46, Math.min(46, (torque / maxTorque) * 46));
   const abs = Math.abs(shift);
   const topHeavy = heavyCount > 0 && heavyRowSum / heavyCount < centerRow;
-  return { total, shift, abs, topHeavy, heavyCount, isBalanced: abs <= 20 && !topHeavy, isTipping: abs > 34 };
+  return { total, left, right, shift, abs, topHeavy, heavyCount, isBalanced: abs <= 20 && !topHeavy, isTipping: abs > 34 };
 }
 
 // Anchor the shape so the tapped cell is the filled cell closest to the shape's centre

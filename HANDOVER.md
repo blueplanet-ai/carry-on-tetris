@@ -1,7 +1,7 @@
 # Project Handover: Gate Games
 
 **Date:** 2026-10-23  
-**Current Version:** v0.6  
+**Current Version:** v0.7  
 **Status:** Playable, tested, zero-dependency client-side PWA  
 **Stack:** Vanilla HTML5, CSS3, ES modules (no build step), Web Audio API, Web Haptics, Service Worker (network-first, offline fallback)  
 
@@ -100,6 +100,16 @@ Since v0.5 the game is split into ES modules (no bundler). The game logic that d
 3. **Perfect and skipped bags:** a 3-star bag gets 🏆 on its chip and header badge, and replaying it says the stars are banked. A stuck player can skip a hand-made bag (second tap confirms) to open the next one. Skipping earns nothing, marks the chip ⏭, and doesn't unlock that bag's trivia flights. Rules live in the pure `js/progress.js`.
 4. **Save v2:** adds `skippedBags`.
 5. **Header fix:** on narrow phones the header controls now wrap below a long route title instead of overlapping it.
+
+### 🎨 What Changed in v0.7 (redesign)
+The game now uses the look of [blueplanet-ai.github.io](https://blueplanet-ai.github.io/): ink on a Sage paper ground, Newsreader / Saira / IBM Plex Mono, teal for what you're holding and one burnt-orange action per screen. The colour tokens are the site's (see its `DESIGN.md`), in `:root` at the top of `css/styles.css`, with dark mode defined twice (system setting, and `data-theme="dark"`).
+1. **Boarding-pass header:** a dark teal ticket (a calmer `#0A3D45` in dark mode) with city names over flat bold Arial codes, a dashed tear line with notches on both edges, and a stub for the bag/flight number, miles and the buttons. `#routeTitle` keeps its plain `SFO ✈ LAX` text; `js/shell.js` splits it into styled codes. City names come from `js/data/airports.js` (trivia answers use their option labels).
+2. **Drawn objects instead of emoji:** `js/art.js` holds flat line drawings for every packing item (mapped by name; a unit test checks none are missing), small rule badges, and the 15 boarding passengers with what each group carries. UI icons are an SVG sprite at the top of `index.html` (`<use href="#i-…">`).
+3. **Pack:** a hard-shell suitcase with a telescoping handle, corner guards, a zipper track and wheels; items keep their merged-cell shapes in muted rule colours (sand = TSA top row, slate = heavy, mist = fragile). Weight balance is a scale whose beam tips toward the heavier wheel; `computeBalance()` now also returns `left` / `right`. Tray cards show each item's drawing and footprint.
+4. **Trivia:** a flat flight plot, clue cards with icons, and answers as luggage tags. **Boarding:** drawn passengers and an orange jet-bridge door.
+5. **Light / dark toggle** in the header (`js/theme.js`), saved under `bp-theme` like the site; with no choice the system setting applies.
+6. **Shop shells:** the five suitcase skins are now shell colours (`--shell`); their ids are unchanged, so saves keep the equipped skin.
+7. Fonts load from Google Fonts; offline (or blocked) the game falls back to Georgia / system sans / monospace. The pass codes use Arial, which is always available.
 
 ---
 

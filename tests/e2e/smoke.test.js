@@ -78,11 +78,11 @@ test("packing the first bag perfectly earns three stars and 1,000 miles", async 
   await page.waitForSelector("#winBanner.show");
   assert.equal(await page.locator("#winStars .dim").count(), 0, "a star is missing");
   assert.equal(await miles(page) - startMiles, 300 + 200 + 500);
-  assert.match(await page.textContent("#levelChip-0"), /🏆.*★★★/);
+  assert.match(await page.textContent("#levelChip-0"), /★★★/);
   assert.match(await page.getAttribute("#levelChip-0", "class"), /perfect/);
   await page.click("#btnNextBag");
   await page.click("#levelChip-0");
-  assert.match(await page.textContent("#levelBadge"), /🏆/);
+  assert.match(await page.getAttribute("#levelBadge", "class"), /perfect/);
   assert.match(await page.textContent("#statusText"), /already zipped this bag perfectly/);
   assert.deepEqual(errors, []);
   await close();
@@ -146,7 +146,7 @@ test("a shared link that can't be packed falls back to a regular bag", async () 
 test("a valid shared link loads that custom bag", async () => {
   const { page, errors, close } = await openGame("#custom=1&o=SEA&d=HNL&r=5&c=6&t=island&k=normal&s=42&b=4.0_4.5");
   assert.equal(await page.textContent("#routeTitle"), "SEA ✈ HNL");
-  assert.equal(await page.textContent("#levelBadge"), "🛠️ Custom");
+  assert.equal(await page.textContent("#levelBadge"), "Custom");
   assert.deepEqual(errors, []);
   await close();
 });
@@ -157,7 +157,7 @@ test("the builder's Play Daily Bag button switches to the Pack tab", async () =>
   await page.click("#btnBuilder");
   await page.click("[data-action=playDailyFromBuilder]");
   assert.equal(await page.isVisible("#modeTetris"), true);
-  assert.equal(await page.textContent("#levelBadge"), "📅 Daily");
+  assert.equal(await page.textContent("#levelBadge"), "Daily");
   assert.deepEqual(errors, []);
   await close();
 });
@@ -234,7 +234,7 @@ test("a connected trip runs Pack → Route → Board and pays the itinerary bonu
   assert.equal(await miles(page) - before, 400 + 300, "boarding reward + itinerary bonus");
   await page.click("#btnNextItineraryBag");
   assert.equal(await page.textContent("#routeTitle"), LEVELS[1].route);
-  assert.match(await page.textContent("#levelChip-0"), /🎫/);
+  assert.match(await page.getAttribute("#levelChip-0", "class"), /itinerary/);
   assert.deepEqual(errors, []);
   await close();
 });
@@ -248,7 +248,7 @@ test("skipping a stuck bag needs a second tap, opens the next bag and earns noth
   assert.match(await page.textContent("#btnSkipBag"), /Tap again/);
   await page.click("#btnSkipBag");
   assert.equal(await page.textContent("#routeTitle"), LEVELS[1].route);
-  assert.match(await page.textContent("#levelChip-0"), /⏭/);
+  assert.match(await page.getAttribute("#levelChip-0", "class"), /skipped/);
   assert.equal(await miles(page), m0);
   // skipping doesn't open the trivia flight tied to that bag
   await page.click("#tabMode2");
@@ -313,4 +313,29 @@ test("the route title never overlaps the header controls on phone widths", async
     assert.equal(overlap, false, `title overlaps the controls at ${width}px`);
     await close();
   }
+});
+
+test("the theme toggle switches between light and dark and is remembered", async () => {
+  const { page, errors, close } = await openGame("", { colorScheme: "light" });
+  const ground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  assert.equal(await ground(), "rgb(235, 240, 230)");
+  await page.click("#btnTheme");
+  assert.equal(await page.getAttribute("html", "data-theme"), "dark");
+  assert.equal(await ground(), "rgb(13, 18, 19)");
+  await page.reload();
+  await page.waitForSelector("#itemTray .item-card");
+  assert.equal(await ground(), "rgb(13, 18, 19)", "dark choice was not remembered");
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("every mode fits a 360px phone without sideways scrolling", async () => {
+  const { page, errors, close } = await openGame("", { viewport: { width: 360, height: 780 } });
+  for (const tab of ["#tabMode1", "#tabMode2", "#tabMode3"]) {
+    await page.click(tab);
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    assert.equal(overflow, 0, `${tab} scrolls sideways by ${overflow}px`);
+  }
+  assert.deepEqual(errors, []);
+  await close();
 });

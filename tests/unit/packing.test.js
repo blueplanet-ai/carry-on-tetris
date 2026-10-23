@@ -57,3 +57,11 @@ test("balance: heavy items on one side tip the bag, low heavy items aren't top-h
   const high = computeBalance(4, 5, [{ r: 0, c: 2, rule: "HEAVY" }]);
   assert.ok(high.topHeavy && !high.isBalanced);
 });
+
+test("balance reports the weight over each wheel, splitting the centre column", () => {
+  // 5 columns: column 2 is the centre
+  const bal = computeBalance(4, 5, [{ r: 3, c: 0, rule: "HEAVY" }, { r: 3, c: 2, rule: "NONE" }, { r: 0, c: 4, rule: "FRAGILE" }]);
+  assert.equal(bal.left.toFixed(1), (2.8 + 0.6).toFixed(1));
+  assert.equal(bal.right.toFixed(1), (0.6 + 0.8).toFixed(1));
+  assert.equal((bal.left + bal.right).toFixed(1), bal.total.toFixed(1));
+});

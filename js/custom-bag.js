@@ -21,7 +21,7 @@ const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const iata = (v, fallback) => (String(v || "").toUpperCase().replace(/[^A-Z]/g, "").slice(0, 3) || fallback);
 
 // Normalise raw inputs (from the builder form or a shared link) into a bag config
-export function makeCustomConfig({ origin, dest, rows, cols, theme, ruleKey, seed, blocked = [] }, subtitlePrefix = "🛠️ Custom Flight Bag") {
+export function makeCustomConfig({ origin, dest, rows, cols, theme, ruleKey, seed, blocked = [] }, subtitlePrefix = "Custom bag") {
   const o = iata(origin, "SFO");
   const d = iata(dest, "NRT");
   const r = clamp(Number(rows) || 5, SIZE_LIMITS.minRows, SIZE_LIMITS.maxRows);
@@ -81,5 +81,5 @@ export function parseCustomHash(hash) {
     ruleKey: params.get("k"),
     seed: params.get("s"),
     blocked: bRaw ? bRaw.split("_").map(p => p.split(".").map(Number)) : []
-  }, "🛠️ Shared Custom Bag");
+  }, "Shared bag");
 }

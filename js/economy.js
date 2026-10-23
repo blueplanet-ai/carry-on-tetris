@@ -4,18 +4,19 @@ import { save, persist } from "./save.js";
 import { fx } from "./audio.js";
 
 export const TIERS = [
-  { name: "Economy", emoji: "💺", min: 0 },
-  { name: "Premium Economy", emoji: "🛋️", min: 2500 },
-  { name: "Business", emoji: "🥂", min: 6000 },
-  { name: "First Class", emoji: "👑", min: 12000 }
+  { name: "Economy", min: 0 },
+  { name: "Premium Economy", min: 2500 },
+  { name: "Business", min: 6000 },
+  { name: "First Class", min: 12000 }
 ];
 
+// Suitcase shell colours (the ids are stored in saves, so they stay as they were)
 export const SKINS = [
-  { id: "classic", name: "Classic Slate", price: 0, rim: "#475569", lining: "#1e293b", empty: "#334155" },
-  { id: "coral", name: "Sunset Coral", price: 800, rim: "#fb7185", lining: "#2d1622", empty: "#4a2536" },
-  { id: "leather", name: "Aviator Leather", price: 1500, rim: "#b45309", lining: "#24190f", empty: "#3d2b1a" },
-  { id: "neon", name: "Neon Jetset", price: 2500, rim: "#22d3ee", lining: "#0a1430", empty: "#1c2b52" },
-  { id: "gold", name: "First Class Gold", price: 4000, rim: "#fbbf24", lining: "#1c170b", empty: "#3a3016" }
+  { id: "classic", name: "Deep Teal", price: 0, shell: "#2F4A4F" },
+  { id: "coral", name: "Sunset Clay", price: 800, shell: "#8C4A2E" },
+  { id: "leather", name: "Aviator Leather", price: 1500, shell: "#5E4632" },
+  { id: "neon", name: "Night Jetset", price: 2500, shell: "#2B3A5C" },
+  { id: "gold", name: "First Class Gold", price: 4000, shell: "#7A6331" }
 ];
 
 export const tierFor = (lifetime) => [...TIERS].reverse().find(t => lifetime >= t.min);
@@ -23,7 +24,7 @@ export const tierFor = (lifetime) => [...TIERS].reverse().find(t => lifetime >= 
 export function updateMilesDisplay() {
   $("milesCount").textContent = save.miles.toLocaleString();
   const tier = tierFor(save.lifetime);
-  $("milesBadge").title = `Frequent Flyer Miles • ${tier.emoji} ${tier.name}`;
+  $("milesBadge").title = `Frequent flyer miles · ${tier.name}`;
   persist();
 }
 
@@ -39,7 +40,7 @@ export function addMiles(amount) {
   badge.classList.add("bump");
   fx.coin();
   const after = tierFor(save.lifetime);
-  if (after.name !== before.name) setTimeout(() => toast(`🎉 Upgraded to ${after.emoji} ${after.name}!`), 600);
+  if (after.name !== before.name) setTimeout(() => toast(`Upgraded to ${after.name}!`), 600);
 }
 
 export function spendMiles(amount) {
@@ -51,10 +52,7 @@ export function spendMiles(amount) {
 
 export function applySkin() {
   const skin = SKINS.find(s => s.id === save.skin) || SKINS[0];
-  const root = document.documentElement.style;
-  root.setProperty("--suitcase-rim", skin.rim);
-  root.setProperty("--suitcase-lining", skin.lining);
-  root.setProperty("--cell-empty", skin.empty);
+  document.documentElement.style.setProperty("--shell", skin.shell);
 }
 
 export function openShop() {
@@ -71,13 +69,13 @@ function renderShop() {
   const tier = tierFor(save.lifetime);
   const idx = TIERS.indexOf(tier);
   const next = TIERS[idx + 1];
-  $("tierName").textContent = `${tier.emoji} ${tier.name}`;
+  $("tierName").textContent = tier.name;
   if (next) {
     const pct = ((save.lifetime - tier.min) / (next.min - tier.min)) * 100;
-    $("tierSub").textContent = `${save.lifetime.toLocaleString()} lifetime miles • ${(next.min - save.lifetime).toLocaleString()} to ${next.emoji} ${next.name}`;
+    $("tierSub").textContent = `${save.lifetime.toLocaleString()} lifetime miles · ${(next.min - save.lifetime).toLocaleString()} to ${next.name}`;
     $("tierFill").style.width = `${Math.min(100, pct)}%`;
   } else {
-    $("tierSub").textContent = `${save.lifetime.toLocaleString()} lifetime miles • Top tier reached!`;
+    $("tierSub").textContent = `${save.lifetime.toLocaleString()} lifetime miles · Top tier reached!`;
     $("tierFill").style.width = "100%";
   }
 
@@ -89,7 +87,7 @@ function renderShop() {
     const row = document.createElement("div");
     row.className = "skin-row" + (equipped ? " equipped" : "");
     row.innerHTML = `
-      <div class="skin-swatch" style="background:${skin.lining}; border-color:${skin.rim};"></div>
+      <div class="skin-swatch" style="--shell:${skin.shell};"></div>
       <div class="skin-info">${skin.name}<small>${owned ? "Owned" : `${skin.price.toLocaleString()} MI`}</small></div>`;
     const btn = document.createElement("button");
     btn.id = `btnSkin-${skin.id}`;
@@ -105,9 +103,9 @@ function renderShop() {
 function buySkin(id) {
   const skin = SKINS.find(s => s.id === id);
   if (!save.ownedSkins.includes(id)) {
-    if (!spendMiles(skin.price)) { fx.error(); toast("Not enough miles yet ✈️"); return; }
+    if (!spendMiles(skin.price)) { fx.error(); toast("Not enough miles yet"); return; }
     save.ownedSkins.push(id);
-    toast(`🧳 ${skin.name} unlocked!`);
+    toast(`${skin.name} shell unlocked!`);
     fx.coin();
   } else {
     fx.tap();

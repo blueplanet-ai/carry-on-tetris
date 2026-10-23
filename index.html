@@ -4,54 +4,93 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="description" content="Gate Games — a cozy, one-thumb airport gate game suite. Pack your carry-on under TSA rules, guess where the flight is headed, and line up boarding groups." />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#EBF0E6" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon.svg" />
-  <title>Gate Games (v0.6)</title>
+  <title>Gate Games (v0.7)</title>
+  <script>try { var t = localStorage.getItem("bp-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Saira:wght@500;600&display=swap" />
   <link rel="stylesheet" href="css/styles.css" />
   <script type="module" src="js/main.js"></script>
 </head>
 <body>
 
+<!-- Line icons, used as <svg class="ico"><use href="#i-…"/></svg> -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></symbol>
+    <symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 9a4 4 0 0 1 0 6"/><path d="M19 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
+    <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9.5l5 5M22 9.5l-5 5"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+    <symbol id="i-rotate" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7"/><path d="M20 4v5h-5"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+    <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9V16h7v-2.1A6 6 0 0 0 12 3z"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24"><path d="M4 17a8 8 0 0 1 16 0"/><path d="M12 17l4-5"/><path d="M7 13.5l1 .6M12 9v1.2M17 13.5l-1 .6"/></symbol>
+    <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18h10a4 4 0 0 0 0-8 5 5 0 0 0-9.6 1.5A3.5 3.5 0 0 0 7 18z"/></symbol>
+    <symbol id="i-tower" viewBox="0 0 24 24"><path d="M12 2v4M8.5 21L12 6l3.5 15M9.5 14h5M5 21h14"/></symbol>
+    <symbol id="i-scissors" viewBox="0 0 24 24"><circle cx="6" cy="7" r="2.5"/><circle cx="6" cy="17" r="2.5"/><path d="M8 8.5l12 8M8 15.5l12-8"/></symbol>
+    <symbol id="i-skip" viewBox="0 0 24 24"><path d="M5 5l9 7-9 7zM18 5v14"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></symbol>
+    <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-door" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="5"/><circle cx="12" cy="9" r="2"/><path d="M15 13v3"/></symbol>
+    <symbol id="i-plane" viewBox="0 0 24 24"><path d="M21 12.5c0-.8-.7-1.5-1.5-1.5H15L10.5 3H8.6l2.2 8H6.2L4.6 9H3l1 3.5L3 16h1.6l1.6-2h4.6l-2.2 8h1.9l4.5-8h4.5c.8 0 1.5-.7 1.5-1.5z"/></symbol>
+  </defs>
+</svg>
+
 <main class="app-container">
-  <!-- Boarding Pass Header -->
-  <header class="boarding-header">
-    <div class="boarding-top-row">
-      <div class="route-info">
-        <h1 class="route-codes" id="routeTitle">SFO ✈ LAX</h1>
-        <div class="route-sub" id="routeSubtitle">Gate B14 • Weekend Carry-On</div>
+  <!-- Boarding pass: city names over flat bold codes, a tear line with ticket notches, then the stub -->
+  <header class="pass" id="boardingPass">
+    <div class="pass-main">
+      <div class="pass-cities"><span id="passFromCity">San Francisco</span><span id="passToCity">Los Angeles</span></div>
+      <h1 class="pass-route" id="routeTitle"><span class="pass-code">SFO</span><span class="pass-plane"> ✈ </span><span class="pass-code">LAX</span></h1>
+      <div class="pass-details"><span id="routeSubtitle">Gate B14</span><span id="passDetail">Weekend Carry-On</span></div>
+    </div>
+    <div class="pass-tear" aria-hidden="true"></div>
+    <div class="pass-stub level-controls">
+      <div class="stub-field">
+        <span class="stub-label">Flight</span>
+        <span class="stub-value" id="levelBadge">Bag 1/6</span>
       </div>
-      <div class="level-controls">
-        <div class="miles-badge" id="milesBadge" title="Frequent Flyer Miles">
-          <span>✈️</span>
-          <span id="milesCount">1,200</span>
-          <span style="font-size:0.6rem; opacity:0.85;">MI</span>
-        </div>
-        <span class="badge" id="levelBadge">Bag 1/6</span>
-        <button class="icon-btn" id="btnBuilder" data-action="openBuilder" aria-label="Custom Bag Builder & Daily Leaderboard" title="Custom Bag & Daily Board">🛠️</button>
-        <button class="icon-btn" id="btnShop" data-action="openShop" aria-label="Open miles shop" title="Miles Shop">🛍️</button>
-        <button class="icon-btn" id="btnSound" data-action="toggleSound" aria-label="Toggle sound and haptics" title="Sound & haptics">🔊</button>
+      <div class="stub-field miles-badge" id="milesBadge" title="Frequent Flyer Miles">
+        <span class="stub-label">Miles</span>
+        <span class="stub-value" id="milesCount">1,200</span>
+      </div>
+      <div class="stub-buttons">
+        <button class="icon-btn" id="btnBuilder" data-action="openBuilder" aria-label="Custom bag builder and daily leaderboard" title="Custom bag &amp; daily board"><svg class="ico" aria-hidden="true"><use href="#i-wrench"/></svg></button>
+        <button class="icon-btn" id="btnShop" data-action="openShop" aria-label="Open miles shop" title="Miles shop"><svg class="ico" aria-hidden="true"><use href="#i-bag"/></svg></button>
+        <button class="icon-btn" id="btnSound" data-action="toggleSound" aria-label="Toggle sound and haptics" title="Sound &amp; haptics"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
+        <button class="icon-btn" id="btnTheme" data-action="toggleTheme" aria-label="Switch theme" title="Theme"><svg class="ico" aria-hidden="true"><use href="#i-moon"/></svg></button>
       </div>
     </div>
-
-    <div class="itinerary-bar" id="itineraryBar">
-      <span id="itineraryLabel">🎫 Connected Leg: SFO ➔ LAX</span>
-      <div class="itinerary-steps">
-        <span class="itinerary-step" id="itinStepPack">1. Pack</span>
-        <span>➔</span>
-        <span class="itinerary-step" id="itinStepTrivia">2. Route</span>
-        <span>➔</span>
-        <span class="itinerary-step" id="itinStepBoard">3. Board</span>
-      </div>
-    </div>
-
-    <nav class="mode-switcher" aria-label="Game modes">
-      <button class="mode-tab active" id="tabMode1" data-action="switchMode" data-arg="tetris">🧳 Pack</button>
-      <button class="mode-tab" id="tabMode2" data-action="switchMode" data-arg="trivia">🛫 Trivia</button>
-      <button class="mode-tab" id="tabMode3" data-action="switchMode" data-arg="shuffle">🚶 Boarding</button>
-    </nav>
   </header>
+
+  <div class="itinerary-bar" id="itineraryBar">
+    <span id="itineraryLabel">Connected leg: SFO ✈ LAX</span>
+    <div class="itinerary-steps">
+      <span class="itinerary-step" id="itinStepPack">1 Pack</span>
+      <span class="itinerary-step" id="itinStepTrivia">2 Route</span>
+      <span class="itinerary-step" id="itinStepBoard">3 Board</span>
+    </div>
+  </div>
+
+  <nav class="mode-switcher" aria-label="Game modes">
+    <button class="mode-tab active" id="tabMode1" data-action="switchMode" data-arg="tetris">Pack</button>
+    <button class="mode-tab" id="tabMode2" data-action="switchMode" data-arg="trivia">Trivia</button>
+    <button class="mode-tab" id="tabMode3" data-action="switchMode" data-arg="shuffle">Boarding</button>
+  </nav>
 
   <!-- =====================================================
        MODE 1: PACK YOUR CARRY-ON
@@ -60,19 +99,19 @@
     <div class="level-strip" id="levelStrip"></div>
 
     <div class="rule-banner" id="statusBanner">
-      <span id="statusText">👆 Tap an item below, then tap the suitcase to pack it.</span>
+      <span id="statusText">Tap an item below, then tap the suitcase to pack it.</span>
     </div>
 
     <div class="curveball-banner" id="curveballBanner">
       <div class="curveball-top">
-        <span style="font-size:1.35rem;" id="curveballEmoji">🥐</span>
+        <span class="curveball-art" id="curveballEmoji"></span>
         <div>
-          <div style="font-weight:800; color:var(--accent);" id="curveballTitle">📢 Gate Agent Curveball!</div>
-          <div id="curveballDesc">Overhead bins are full! Fit this extra item for +500 Bonus Miles?</div>
+          <div class="curveball-title" id="curveballTitle">Gate agent curveball!</div>
+          <div id="curveballDesc">Overhead bins are full! Fit this extra item for +500 bonus miles?</div>
         </div>
       </div>
       <div class="curveball-actions">
-        <button class="btn btn-primary btn-xs" id="btnAcceptCurveball" data-action="acceptCurveball">+ Accept (+500 MI)</button>
+        <button class="btn btn-primary btn-xs" id="btnAcceptCurveball" data-action="acceptCurveball">Accept · +500 MI</button>
         <button class="btn btn-xs" id="btnDeclineCurveball" data-action="declineCurveball">Skip</button>
       </div>
     </div>
@@ -80,51 +119,61 @@
     <div class="win-banner" id="winBanner">
       <div>
         <div class="win-stars" id="winStars">★★★</div>
-        <div class="win-title" id="winTitle">✅ Carry-On Zipped!</div>
+        <div class="win-title" id="winTitle">Carry-On Zipped!</div>
         <ul class="win-criteria" id="winCriteria"></ul>
       </div>
       <div class="win-actions">
-        <button class="btn btn-primary" id="btnNextBag" data-action="nextBag">Next Bag ➔</button>
-        <button class="btn btn-ghost" id="btnContinueTrip" data-action="continueTrip">🛫 Trip Trivia</button>
+        <button class="btn btn-primary" id="btnNextBag" data-action="nextBag">Next Bag</button>
+        <button class="btn btn-ghost" id="btnContinueTrip" data-action="continueTrip">Trip Trivia</button>
       </div>
     </div>
 
     <div class="suitcase-wrapper">
-      <div class="suitcase-handle"></div>
+      <div class="suitcase-handle" aria-hidden="true"><span></span></div>
       <div class="suitcase-body" id="suitcaseBody">
-        <div class="zipper" aria-hidden="true"><div class="zipper-track"></div><span class="zipper-pull">🔒</span></div>
-        <div class="tsa-zone-label">⬆ Top Zipper (TSA Quick-Access Row) ⬆</div>
-        <div class="grid" id="suitcaseGrid" role="grid" aria-label="Suitcase grid"></div>
+        <div class="zipper" aria-hidden="true"><div class="zipper-track"></div><span class="zipper-pull"></span></div>
+        <div class="tsa-zone-label"><span>Top zipper · TSA row</span></div>
+        <div class="suitcase-lining">
+          <div class="grid" id="suitcaseGrid" role="grid" aria-label="Suitcase grid"></div>
+        </div>
       </div>
+      <div class="suitcase-wheels" aria-hidden="true"><span></span><span></span></div>
 
+      <!-- Weight balance: a scale under the two wheels that tips toward the heavier side -->
       <div class="balance-card">
         <div class="balance-header">
-          <span>⚖️ WEIGHT BALANCE (<span id="bagWeightText">0.0 lbs</span>)</span>
-          <span class="balance-status good" id="balanceStatusText">Balanced ✅</span>
+          <span>Weight balance · <span id="bagWeightText">0.0 lbs</span></span>
+          <span class="balance-status good" id="balanceStatusText">Balanced</span>
         </div>
-        <div class="balance-track">
-          <div class="balance-safe-zone"></div>
-          <div class="balance-marker" id="balanceMarker"></div>
-        </div>
-        <div class="balance-axis-labels">
-          <span>◀ LEFT WHEEL</span>
-          <span>CENTER OF GRAVITY</span>
-          <span>RIGHT WHEEL ▶</span>
-        </div>
-        <div class="balance-vertical" id="balanceVertical">⬇ No heavy items packed yet</div>
+        <svg class="scale" viewBox="0 0 320 62" role="img" aria-labelledby="scaleSummary">
+          <title id="scaleSummary">Left wheel 0 lb, right wheel 0 lb</title>
+          <line class="scale-floor" x1="30" y1="61" x2="290" y2="61" />
+          <path class="scale-fulcrum" d="M140 60 L160 34 L180 60 Z" />
+          <g class="scale-beam" id="scaleBeam">
+            <rect class="scale-bar" x="30" y="31" width="260" height="5" rx="2.5" />
+            <path class="scale-weight" id="scaleWeightL" d="M52 31h40l-4-15a4 4 0 0 0-4-3H60a4 4 0 0 0-4 3z" />
+            <path class="scale-ring" d="M64 13a8 6 0 0 1 16 0" />
+            <path class="scale-weight" id="scaleWeightR" d="M228 31h40l-4-15a4 4 0 0 0-4-3h-24a4 4 0 0 0-4 3z" />
+            <path class="scale-ring" d="M240 13a8 6 0 0 1 16 0" />
+            <line class="scale-pointer" id="balanceMarker" x1="160" y1="21" x2="160" y2="31" />
+          </g>
+          <text class="scale-text" id="scaleLeftText" x="72" y="54" text-anchor="middle">L 0.0 lb</text>
+          <text class="scale-text" id="scaleRightText" x="248" y="54" text-anchor="middle">R 0.0 lb</text>
+        </svg>
+        <div class="balance-vertical" id="balanceVertical">No heavy items packed yet</div>
       </div>
     </div>
 
     <div class="controls-bar">
-      <button class="btn btn-primary" id="btnRotate" data-action="rotate" title="Rotate (R)">🔄 Rotate</button>
-      <button class="btn" id="btnUndo" data-action="undo" title="Undo (Z)">↩️ Undo</button>
-      <button class="btn btn-accent-outline" id="btnHint" data-action="hint" title="Hint (H)">💡 150</button>
-      <button class="btn" id="btnReset" data-action="reset" title="Unpack everything">🗑️ Reset</button>
+      <button class="btn btn-primary" id="btnRotate" data-action="rotate" title="Rotate (R)"><svg class="ico" aria-hidden="true"><use href="#i-rotate"/></svg>Rotate</button>
+      <button class="btn" id="btnUndo" data-action="undo" title="Undo (Z)"><svg class="ico" aria-hidden="true"><use href="#i-undo"/></svg>Undo</button>
+      <button class="btn btn-accent-outline" id="btnHint" data-action="hint" title="Hint (H)">Hint 150</button>
+      <button class="btn" id="btnReset" data-action="reset" title="Unpack everything">Reset</button>
     </div>
-    <button class="btn btn-ghost btn-xs skip-btn" id="btnSkipBag" data-action="skipBag" hidden>⏭ Stuck? Skip this bag</button>
+    <button class="btn btn-ghost btn-xs skip-btn" id="btnSkipBag" data-action="skipBag" hidden>Stuck? Skip this bag</button>
 
     <div class="tray-header">
-      <span>ITEMS TO PACK (<span id="packedCount">0/0</span>)</span>
+      <span>Items to pack · <span id="packedCount">0/0</span></span>
       <span id="trayHint">Tap packed item in bag to remove</span>
     </div>
     <div class="item-tray" id="itemTray"></div>
@@ -135,72 +184,69 @@
        ===================================================== -->
   <section id="modeTrivia" class="mode-view hidden" aria-label="Where Are We Flying trivia">
     <div class="level-strip" id="flightStrip" aria-label="Trivia flights"></div>
-    <div class="radar-card">
-      <svg class="radar-svg" viewBox="0 0 280 140" role="img" aria-label="Flight radar showing the route heading">
-        <defs>
-          <linearGradient id="sweepGrad" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0" stop-color="#38bdf8" stop-opacity="0" />
-            <stop offset="1" stop-color="#38bdf8" stop-opacity="0.22" />
-          </linearGradient>
-        </defs>
-        <circle cx="140" cy="70" r="66" fill="none" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4 4" />
-        <circle cx="140" cy="70" r="44" fill="none" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4 4" />
-        <circle cx="140" cy="70" r="22" fill="none" stroke="#1e293b" stroke-width="1.5" />
-        <line x1="10" y1="70" x2="270" y2="70" stroke="#26344a" stroke-width="1" />
-        <line x1="140" y1="2" x2="140" y2="138" stroke="#26344a" stroke-width="1" />
-        <text x="136" y="10" fill="#475569" font-size="8" font-weight="bold">N</text>
-        <g class="radar-sweep"><path d="M140 70 L140 2 A68 68 0 0 1 188 22 Z" fill="url(#sweepGrad)" /></g>
-        <path id="radarRoute" d="M 140 70 Q 180 30 230 40" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-dasharray="5 4" />
-        <circle id="radarOriginDot" cx="140" cy="70" r="5" fill="#f59e0b" />
-        <text id="radarOriginText" x="128" y="86" fill="#f59e0b" font-size="10" font-weight="bold">SFO</text>
-        <circle id="radarDestDot" class="dest-pulse" cx="230" cy="40" r="5.5" fill="#38bdf8" />
-        <text id="radarDestText" x="220" y="30" fill="#38bdf8" font-size="10" font-weight="bold">???</text>
+    <figure class="radar-card">
+      <svg class="radar-svg" viewBox="0 0 280 140" role="img" aria-label="Flight plot showing the route heading">
+        <circle class="radar-ring" cx="140" cy="70" r="66" />
+        <circle class="radar-ring" cx="140" cy="70" r="44" />
+        <circle class="radar-ring" cx="140" cy="70" r="22" />
+        <line class="radar-axis" x1="10" y1="70" x2="270" y2="70" />
+        <line class="radar-axis" x1="140" y1="2" x2="140" y2="138" />
+        <path class="radar-north" d="M22 24 l6 -14 l6 14 l-6 -4 z" />
+        <text class="radar-label" x="24" y="38">N</text>
+        <path id="radarRoute" class="radar-route" d="M 140 70 Q 180 30 230 40" />
+        <circle id="radarOriginDot" class="radar-origin" cx="140" cy="70" r="5" />
+        <text id="radarOriginText" class="radar-code" x="128" y="86">SFO</text>
+        <circle id="radarDestDot" class="radar-dest" cx="230" cy="40" r="7" />
+        <text id="radarDestText" class="radar-code dest" x="220" y="30">???</text>
         <g id="radarPlaneLayer"></g>
       </svg>
-      <div class="radar-telemetry">
-        <span id="telemetryHeading">HDG 352° N • 2h 15m</span>
+      <figcaption class="radar-telemetry">
+        <span id="telemetryHeading">HDG 352° N · 2h 15m</span>
         <span id="telemetryPot">REWARD POOL: +500 MI</span>
-      </div>
-    </div>
+      </figcaption>
+    </figure>
 
     <div class="clues-list">
       <div class="clue-box revealed">
-        <div>
-          <div class="clue-label">Clue 1 • Flight Telemetry (Free)</div>
+        <span class="clue-icon"><svg class="ico" aria-hidden="true"><use href="#i-gauge"/></svg></span>
+        <div class="clue-body">
+          <div class="clue-label">01 · Flight telemetry · Free</div>
           <div class="clue-text" id="clue1Text">Loading flight telemetry...</div>
         </div>
       </div>
       <div class="clue-box" id="clue2Box">
-        <div style="flex:1;">
-          <div class="clue-label">Clue 2 • Weather &amp; Passenger Manifest</div>
-          <div class="clue-text" id="clue2Text" style="color:var(--text-muted);">Locked — Reveal passenger gear &amp; local weather</div>
+        <span class="clue-icon"><svg class="ico" aria-hidden="true"><use href="#i-cloud"/></svg></span>
+        <div class="clue-body">
+          <div class="clue-label">02 · Weather &amp; passengers</div>
+          <div class="clue-text" id="clue2Text">Sealed — passenger gear &amp; local weather</div>
         </div>
-        <button class="btn btn-xs btn-accent-outline" id="btnClue2" style="flex:0 0 auto;" data-action="unlockClue" data-arg="2">🔓 −100 pool</button>
+        <button class="btn btn-xs btn-accent-outline" id="btnClue2" data-action="unlockClue" data-arg="2"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>−100</button>
       </div>
       <div class="clue-box" id="clue3Box">
-        <div style="flex:1;">
-          <div class="clue-label">Clue 3 • Cultural / Landmark Signature</div>
-          <div class="clue-text" id="clue3Text" style="color:var(--text-muted);">Locked — Reveal destination signature clue</div>
+        <span class="clue-icon"><svg class="ico" aria-hidden="true"><use href="#i-tower"/></svg></span>
+        <div class="clue-body">
+          <div class="clue-label">03 · Landmark</div>
+          <div class="clue-text" id="clue3Text">Sealed — the destination's signature</div>
         </div>
-        <button class="btn btn-xs btn-accent-outline" id="btnClue3" style="flex:0 0 auto;" data-action="unlockClue" data-arg="3">🔓 −200 pool</button>
+        <button class="btn btn-xs btn-accent-outline" id="btnClue3" data-action="unlockClue" data-arg="3"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>−200</button>
       </div>
     </div>
 
     <div class="rule-banner" id="triviaStatusBanner">
-      <span id="triviaStatusText">🌍 Where are we flying? Select the destination airport:</span>
-      <button class="btn btn-xs" id="btnFifty" style="flex:0 0 auto;" data-action="fiftyFifty">✂️ 50/50 · 100 MI</button>
+      <span id="triviaStatusText">Where are we flying? Pick the tag for this bag.</span>
+      <button class="btn btn-xs" id="btnFifty" data-action="fiftyFifty"><svg class="ico" aria-hidden="true"><use href="#i-scissors"/></svg>50/50 · 100</button>
     </div>
 
     <div class="destinations-grid" id="destinationsGrid"></div>
 
     <div class="win-banner" id="triviaWinBanner">
       <div>
-        <div class="win-title" id="triviaWinTitle">🎯 Flight Routed!</div>
+        <div class="win-title" id="triviaWinTitle">Flight routed!</div>
         <div class="win-sub" id="triviaWinSub">Boarding pass verified.</div>
       </div>
       <div class="win-actions">
-        <button class="btn btn-primary" id="btnNextTrivia" data-action="nextFlight">Next Flight ➔</button>
-        <button class="btn btn-ghost" id="btnBoardFlight" data-action="boardFlight" style="display:none;">🚶 Board Flight</button>
+        <button class="btn btn-primary" id="btnNextTrivia" data-action="nextFlight">Next Flight</button>
+        <button class="btn btn-ghost" id="btnBoardFlight" data-action="boardFlight" style="display:none;">Board Flight</button>
       </div>
     </div>
   </section>
@@ -210,7 +256,7 @@
        ===================================================== -->
   <section id="modeShuffle" class="mode-view hidden" aria-label="Boarding Group Shuffle">
     <div class="rule-banner" id="shuffleStatusBanner">
-      <span id="shuffleStatusText">🚶 Line the boarding groups up in order, leaving the jet bridge door open.</span>
+      <span id="shuffleStatusText">Line the boarding groups up in order, leaving the jet bridge door open.</span>
     </div>
 
     <div class="shuffle-card">
@@ -221,18 +267,18 @@
       </div>
     </div>
 
-    <div class="controls-bar" style="grid-template-columns: 1fr;">
-      <button class="btn" id="btnNewShuffle" data-action="newShuffle">🔀 New Line-Up</button>
+    <div class="controls-bar single">
+      <button class="btn" id="btnNewShuffle" data-action="newShuffle"><svg class="ico" aria-hidden="true"><use href="#i-shuffle"/></svg>New Line-Up</button>
     </div>
 
     <div class="win-banner" id="shuffleWinBanner">
       <div>
-        <div class="win-title" id="shuffleWinTitle">✅ Boarding Complete!</div>
+        <div class="win-title" id="shuffleWinTitle">Boarding complete!</div>
         <div class="win-sub" id="shuffleWinSub">Everyone's in order.</div>
       </div>
       <div class="win-actions">
-        <button class="btn btn-primary" id="btnNextShuffle" data-action="newShuffle">Next Gate ➔</button>
-        <button class="btn btn-ghost" id="btnNextItineraryBag" data-action="nextLegBag" style="display:none;">🧳 Next Leg Bag</button>
+        <button class="btn btn-primary" id="btnNextShuffle" data-action="newShuffle">Next Gate</button>
+        <button class="btn btn-ghost" id="btnNextItineraryBag" data-action="nextLegBag" style="display:none;">Next Leg Bag</button>
       </div>
     </div>
   </section>
@@ -242,18 +288,18 @@
 <div class="modal" id="builderModal">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="builderTitle">
     <div class="modal-head">
-      <h2 id="builderTitle">🛠️ Custom Bag &amp; Daily Board</h2>
-      <button class="icon-btn" id="btnCloseBuilder" data-action="closeBuilder" aria-label="Close builder">✕</button>
+      <h2 id="builderTitle">Custom bag &amp; daily board</h2>
+      <button class="icon-btn" id="btnCloseBuilder" data-action="closeBuilder" aria-label="Close builder"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
 
-    <div class="section-label">📅 Daily Bag: You vs. Sample Gate Scores (<span id="lbDateLabel">Today</span>)</div>
+    <div class="section-label">Daily bag: you vs. sample gate scores (<span id="lbDateLabel">Today</span>)</div>
     <div class="leaderboard-card" id="dailyLeaderboard"></div>
-    <div style="display:flex; gap:6px;">
-      <button class="btn btn-xs btn-accent-outline" data-action="shareDailyResult">📋 Copy Daily Score Card</button>
-      <button class="btn btn-xs" data-action="playDailyFromBuilder">📅 Play Daily Bag</button>
+    <div class="modal-row">
+      <button class="btn btn-xs btn-accent-outline" data-action="shareDailyResult"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>Copy daily score card</button>
+      <button class="btn btn-xs" data-action="playDailyFromBuilder"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Play daily bag</button>
     </div>
 
-    <div class="section-label">🧰 Procedural Bag Customizer (Level Editor)</div>
+    <div class="section-label">Bag customizer (level editor)</div>
     <div class="form-grid">
       <label class="form-field">Origin IATA
         <input type="text" id="custOrigin" maxlength="3" value="SFO" />
@@ -261,7 +307,7 @@
       <label class="form-field">Destination IATA
         <input type="text" id="custDest" maxlength="3" value="NRT" />
       </label>
-      <label class="form-field">Suitcase Size
+      <label class="form-field">Suitcase size
         <select id="custSize">
           <option value="4x5">4 × 5 (Compact)</option>
           <option value="4x6">4 × 6 (Standard)</option>
@@ -270,7 +316,7 @@
           <option value="6x7">6 × 7 (Long-Haul)</option>
         </select>
       </label>
-      <label class="form-field">Destination Theme
+      <label class="form-field">Destination theme
         <select id="custTheme">
           <option value="weekend">Weekend Escape</option>
           <option value="island">Island Hopper</option>
@@ -280,22 +326,22 @@
           <option value="sydney">Down Under Haul</option>
         </select>
       </label>
-      <label class="form-field">TSA / Heavy Rules
+      <label class="form-field">TSA / heavy rules
         <select id="custRules">
           <option value="light">Relaxed (1 Top, 1 Heavy)</option>
           <option value="normal" selected>Standard (2 Top, 1 Bot, 1 Frag)</option>
           <option value="strict">Strict TSA (2 Top, 1 Bot, 1 Hvy, 2 Frag)</option>
         </select>
       </label>
-      <label class="form-field">Puzzle Seed
+      <label class="form-field">Puzzle seed
         <input type="number" id="custSeed" value="777" min="1" max="99999" />
       </label>
     </div>
-    <div style="font-size:0.68rem; color:var(--text-muted); text-align:center;">Tap cells below to toggle blocked wheel housings / frame corners:</div>
+    <div class="modal-note">Tap cells below to toggle blocked wheel housings / frame corners:</div>
     <div class="builder-mini-grid" id="builderMiniGrid"></div>
-    <div style="display:flex; gap:7px;">
-      <button class="btn btn-primary" data-action="playCustomBag">▶️ Play Custom Bag</button>
-      <button class="btn btn-accent-outline" data-action="shareCustomBag">🔗 Share URL</button>
+    <div class="modal-row">
+      <button class="btn btn-primary" data-action="playCustomBag"><svg class="ico" aria-hidden="true"><use href="#i-play"/></svg>Play custom bag</button>
+      <button class="btn btn-accent-outline" data-action="shareCustomBag"><svg class="ico" aria-hidden="true"><use href="#i-link"/></svg>Share URL</button>
     </div>
   </div>
 </div>
@@ -304,20 +350,20 @@
 <div class="modal" id="shopModal">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
     <div class="modal-head">
-      <h2 id="shopTitle">🛍️ Frequent Flyer Shop</h2>
-      <button class="icon-btn" id="btnCloseShop" data-action="closeShop" aria-label="Close shop">✕</button>
+      <h2 id="shopTitle">Frequent flyer shop</h2>
+      <button class="icon-btn" id="btnCloseShop" data-action="closeShop" aria-label="Close shop"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
     <div class="tier-card">
-      <div class="tier-name" id="tierName">💺 Economy</div>
+      <div class="tier-name" id="tierName">Economy</div>
       <div class="tier-sub" id="tierSub">0 lifetime miles</div>
       <div class="tier-track"><div class="tier-fill" id="tierFill" style="width:0%"></div></div>
     </div>
-    <div class="section-label">Suitcase Skins</div>
-    <div id="skinList" style="display:flex; flex-direction:column; gap:7px;"></div>
-    <div class="section-label">Spend Miles In-Game</div>
+    <div class="section-label">Suitcase shells</div>
+    <div id="skinList" class="skin-list"></div>
+    <div class="section-label">Spend miles in-game</div>
     <div class="shop-note">
-      💡 <b>Packing Hint (150 MI)</b> — shows exactly where the selected item fits in a perfect pack.<br/>
-      ✂️ <b>Trivia 50/50 (100 MI)</b> — removes one wrong destination.<br/>
+      <b>Packing hint (150 MI)</b> — shows exactly where the selected item fits in a perfect pack.<br/>
+      <b>Trivia 50/50 (100 MI)</b> — removes one wrong destination.<br/>
       Miles are only awarded the <b>first</b> time you earn each star or route each flight, and for your first Boarding line-up each day.
     </div>
   </div>

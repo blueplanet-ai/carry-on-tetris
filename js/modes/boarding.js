@@ -9,6 +9,7 @@ import { syncBoardingHeader, switchMode } from "../shell.js";
 import { isSolved, scramble, slideLine, solve } from "../boarding-logic.js";
 import { LEVELS } from "../generator.js";
 import { loadNextBagAfter, currentLevelIndex, renderLevelStrip } from "./pack.js";
+import { paxArt } from "../art.js";
 
 // Per cabin size: scramble walk length, par slack over the shortest solution, and miles (under / over par).
 // 4×4 scrambles stay short so the exact solver finishes in milliseconds on a phone.
@@ -18,24 +19,9 @@ const CABINS = {
 };
 export const BIG_CABIN_FROM_LEVEL = 3; // trip legs starting at this bag index (LHR ✈ RAK onward) use the 4×4 cabin
 const SOLVER_NODE_BUDGET = 200000;
-const PAX = [
-  null,
-  { e: "♿", c: "#38bdf8", l: "Pre-board" },
-  { e: "👑", c: "#fbbf24", l: "First" },
-  { e: "🥂", c: "#f472b6", l: "Business" },
-  { e: "💳", c: "#a78bfa", l: "Elite" },
-  { e: "👨‍👩‍👧", c: "#34d399", l: "Families" },
-  { e: "🧳", c: "#fb923c", l: "Main" },
-  { e: "🎒", c: "#60a5fa", l: "Main" },
-  { e: "🏃", c: "#f87171", l: "Basic" },
-  { e: "🎧", c: "#2dd4bf", l: "Comfort+" },
-  { e: "💼", c: "#818cf8", l: "Corporate" },
-  { e: "🧒", c: "#facc15", l: "Kids" },
-  { e: "🐕", c: "#fb7185", l: "Pets" },
-  { e: "🎓", c: "#a3e635", l: "Students" },
-  { e: "🕶️", c: "#94a3b8", l: "Standby" },
-  { e: "🛹", c: "#e879f9", l: "Last Call" }
-];
+// Group labels; each passenger's drawing (and what they carry) is in art.js
+const PAX = [null, "Pre-board", "First", "Business", "Elite", "Families", "Main", "Main", "Basic",
+  "Comfort+", "Corporate", "Kids", "Pets", "Students", "Standby", "Last Call"];
 
 let cabin = 3;
 let shuffleTiles = [];
@@ -54,12 +40,20 @@ function cabinForNextLineUp() {
 export function boardingHeader() {
   const itin = app.itinerary;
   const connecting = itin && itin.step >= 3;
-  return {
-    title: connecting ? `${itin.dest} ✈ ${itin.nextDest || "JET"}` : "GATE ➔ JET",
-    subtitle: connecting
-      ? `Connecting Gate Boarding${cabin === 4 ? " • Wide-body 4×4" : ""} • Complete leg for +300 MI Bonus!`
-      : `Boarding Group Shuffle • Line up Groups 1–${lastGroup()}`,
-    badge: `Line-Up #${save.shuffleSolved + 1}`
+  return connecting ? {
+    title: `${itin.dest} ✈ ${itin.nextDest || "JET"}`,
+    subtitle: cabin === 4 ? "Wide-body 4×4" : "Connecting gate",
+    detail: "Complete the leg for +300 MI",
+    badgeLabel: "Line-up",
+    badge: `#${save.shuffleSolved + 1}`
+  } : {
+    title: "B14 ✈ 1L",
+    fromCity: "Gate",
+    toCity: "Aircraft door",
+    subtitle: "Boarding group shuffle",
+    detail: `Groups 1 to ${lastGroup()}`,
+    badgeLabel: "Line-up",
+    badge: `#${save.shuffleSolved + 1}`
   };
 }
 
@@ -80,8 +74,8 @@ export function newShuffle() {
   shuffleDone = false;
   $("shuffleWinBanner").classList.remove("show");
   setShuffleStatus(cabin === 4
-    ? `✈️ Wide-body boarding! Line up Groups 1–${lastGroup()} — tap a passenger in line with the gap.`
-    : `🚶 Tap a passenger next to the gap to step them forward. Line up Groups 1–${lastGroup()}!`);
+    ? `Wide-body boarding! Line up groups 1 to ${lastGroup()} — tap a passenger in line with the gap.`
+    : `Tap a passenger next to the gap to step them forward. Line up groups 1 to ${lastGroup()}, ending at the jet bridge.`);
   buildShuffleBoard();
   syncBoardingHeader();
 }
@@ -90,14 +84,13 @@ function buildShuffleBoard() {
   const board = $("shuffleBoard");
   board.style.setProperty("--n", cabin);
   board.classList.toggle("wide", cabin === 4);
-  board.innerHTML = `<div class="jet-door"><span>🚪</span>JET BRIDGE</div>`;
+  board.innerHTML = `<div class="jet-door"><svg class="door-art" viewBox="0 0 60 56" aria-hidden="true"><path class="bridge" d="M2 55L18 47M58 55L42 47M18 50h24"/><rect class="door" x="18" y="4" width="24" height="44" rx="9"/><circle class="bridge" cx="30" cy="17" r="5"/><path class="bridge" d="M36 30v6"/></svg>Jet bridge</div>`;
   for (let v = 1; v <= lastGroup(); v++) {
     const b = document.createElement("button");
     b.className = "pax-tile";
     b.id = `pax-${v}`;
-    b.style.setProperty("--pax", PAX[v].c);
-    b.setAttribute("aria-label", `Group ${v} ${PAX[v].l}`);
-    b.innerHTML = `<span class="pax-emoji">${PAX[v].e}</span><span class="pax-group">Group ${v}</span><span class="pax-label">${PAX[v].l}</span>`;
+    b.setAttribute("aria-label", `Group ${v} ${PAX[v]}`);
+    b.innerHTML = `<span class="pax-group">Group ${v}</span>${paxArt(v)}<span class="pax-label">${PAX[v]}</span>`;
     b.onclick = () => tapPax(v);
     board.appendChild(b);
   }
@@ -151,7 +144,7 @@ function tapPax(v) {
       }
       nextBagBtn.style.display = "inline-flex";
       const nextIdx = itin.levelIdx + 1;
-      nextBagBtn.textContent = nextIdx < LEVELS.length ? `🧳 Pack ${LEVELS[nextIdx].dest} Bag ➔` : "📅 Daily Bag ➔";
+      nextBagBtn.textContent = nextIdx < LEVELS.length ? `Pack ${LEVELS[nextIdx].dest} Bag` : "Daily Bag";
     } else {
       nextBagBtn.style.display = "none";
     }
@@ -163,13 +156,13 @@ function tapPax(v) {
     fx.win();
     const practiceNote = dailyPaid ? "" : " Today's boarding miles are already banked — back tomorrow for more!";
     setShuffleStatus(earned
-      ? `✅ All groups lined up in ${shuffleMoves} moves! +${earned} Miles${itinBonus ? " (incl. +300 MI Itinerary Bonus!)" : ""}.${practiceNote}`
-      : `✅ All groups lined up in ${shuffleMoves} moves!${practiceNote}`, "success");
-    $("shuffleWinTitle").textContent = earned ? `✅ Boarding Complete! (+${earned} MI)` : "✅ Boarding Complete!";
+      ? `All groups lined up in ${shuffleMoves} moves! +${earned} miles${itinBonus ? " (incl. +300 MI itinerary bonus!)" : ""}.${practiceNote}`
+      : `All groups lined up in ${shuffleMoves} moves!${practiceNote}`, "success");
+    $("shuffleWinTitle").textContent = earned ? `Boarding complete! +${earned} MI` : "Boarding complete!";
     $("shuffleWinSub").textContent = shuffleMoves <= shufflePar ? `Under par (${shufflePar}) — on-time departure!` : `${shuffleMoves} moves — a little delayed, but boarded.`;
     $("shuffleWinBanner").classList.add("show");
   } else {
-    setShuffleStatus(`🚶 Keep going — ${shuffleTiles.filter((t, i) => t === i + 1).length}/${lastGroup()} passengers in place.`);
+    setShuffleStatus(`Keep going — ${shuffleTiles.filter((t, i) => t === i + 1).length}/${lastGroup()} passengers in place.`);
   }
 }
 
