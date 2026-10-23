@@ -1,0 +1,229 @@
+// End-to-end smoke tests: drive the real UI in headless Chromium through clicks and keys only.
+// Run with `npm run test:e2e` (needs the Playwright Chromium build: `npx playwright install chromium`).
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { chromium } from "playwright";
+import { startServer } from "../../scripts/serve.js";
+import { LEVELS, generateBag } from "../../js/generator.js";
+import { TRIVIA_ROUNDS } from "../../js/data/trivia-rounds.js";
+import { solutionMove, boardingSolutionTaps } from "../helpers.js";
+
+const PORT = 8791;
+const URL_BASE = `http://localhost:${PORT}/index.html`;
+let server, browser;
+
+before(async () => {
+  server = await startServer(PORT);
+  browser = await chromium.launch();
+});
+
+after(async () => {
+  await browser?.close();
+  server?.close();
+});
+
+// Fresh browser profile per test (empty save), collecting any page errors
+async function openGame(hash = "", contextOptions = {}) {
+  const context = await browser.newContext({ viewport: { width: 420, height: 900 }, ...contextOptions });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  page.on("console", (m) => { if (m.type() === "error") errors.push(m.text()); });
+  await page.goto(URL_BASE + hash);
+  await page.waitForSelector("#itemTray .item-card");
+  return { page, errors, close: () => context.close() };
+}
+
+const miles = async (page) => Number((await page.textContent("#milesCount")).replace(/,/g, ""));
+const cell = (r, c) => `#suitcaseGrid .cell[data-r="${r}"][data-c="${c}"]`;
+
+async function packItem(page, item) {
+  const move = solutionMove(item);
+  await page.click(`#itemCard-${item.id}`);
+  for (let k = 0; k < move.rotations; k++) await page.click("#btnRotate");
+  await page.click(cell(...move.tap));
+}
+
+test("boots cleanly and switches between all three modes", async () => {
+  const { page, errors, close } = await openGame();
+  assert.equal(await page.textContent("#routeTitle"), LEVELS[0].route);
+  await page.click("#tabMode2");
+  assert.equal(await page.isVisible("#modeTrivia"), true);
+  assert.equal(await page.locator(".dest-btn").count(), 4);
+  await page.click("#tabMode3");
+  assert.equal(await page.isVisible("#modeShuffle"), true);
+  assert.equal(await page.locator(".pax-tile").count(), 8);
+  assert.match(await page.textContent("#shuffleParText"), /PAR: \d+/);
+  await page.click("#tabMode1");
+  assert.equal(await page.isVisible("#modeTetris"), true);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("packing the first bag perfectly earns three stars and 1,000 miles", async () => {
+  const { page, errors, close } = await openGame();
+  const startMiles = await miles(page);
+  const bag = generateBag(LEVELS[0]);
+
+  for (const item of bag.items) await packItem(page, item);
+  await page.waitForSelector("#curveballBanner.show");
+  await page.click("#btnAcceptCurveball");
+  await packItem(page, bag.bonus);
+
+  await page.waitForSelector("#winBanner.show");
+  assert.equal(await page.locator("#winStars .dim").count(), 0, "a star is missing");
+  assert.equal(await miles(page) - startMiles, 300 + 200 + 500);
+  assert.match(await page.textContent("#levelChip-0"), /★★★/);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("keyboard: browser shortcuts are left alone, H buys a hint, arrows + Enter place an item", async () => {
+  const { page, errors, close } = await openGame();
+  const m0 = await miles(page);
+  await page.keyboard.press("Control+h");
+  assert.equal(await miles(page), m0, "Ctrl+H must not spend miles");
+  await page.keyboard.press("h");
+  assert.equal(await miles(page), m0 - 150);
+
+  const item = generateBag(LEVELS[0]).items[0]; // selected by default
+  const move = solutionMove(item);
+  for (let k = 0; k < move.rotations; k++) await page.keyboard.press("r");
+  await page.focus(cell(0, 0));
+  for (let i = 0; i < move.tap[0]; i++) await page.keyboard.press("ArrowDown");
+  for (let i = 0; i < move.tap[1]; i++) await page.keyboard.press("ArrowRight");
+  await page.keyboard.press("Enter");
+  assert.match(await page.textContent("#packedCount"), /^1\//);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("touch: first tap previews, second tap on the same cell places", async () => {
+  const { page, errors, close } = await openGame("", { hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  const item = generateBag(LEVELS[0]).items[0];
+  const move = solutionMove(item);
+  for (let k = 0; k < move.rotations; k++) await page.tap("#btnRotate");
+  await page.tap(cell(...move.tap));
+  assert.match(await page.textContent("#packedCount"), /^0\//);
+  assert.ok(await page.locator(".preview-valid").count() > 0, "no preview after the first tap");
+  await page.tap(cell(...move.tap));
+  assert.match(await page.textContent("#packedCount"), /^1\//);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("routing the first trivia flight correctly pays the full reward pool", async () => {
+  const { page, errors, close } = await openGame();
+  const m0 = await miles(page);
+  await page.click("#tabMode2");
+  await page.click(`#dest-${TRIVIA_ROUNDS[0].answer}`);
+  await page.waitForSelector("#triviaWinBanner.show");
+  assert.equal(await miles(page) - m0, 500);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("a shared link that can't be packed falls back to a regular bag", async () => {
+  const { page, errors, close } = await openGame("#custom=1&o=SFO&d=NRT&r=5&c=6&t=weekend&k=light&s=777&b=0.1_1.0");
+  assert.equal(await page.textContent("#routeTitle"), LEVELS[0].route);
+  assert.equal(await page.evaluate(() => location.hash), "");
+  await page.click("#tabMode2");
+  assert.equal(await page.locator(".dest-btn").count(), 4, "trivia didn't boot");
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("a valid shared link loads that custom bag", async () => {
+  const { page, errors, close } = await openGame("#custom=1&o=SEA&d=HNL&r=5&c=6&t=island&k=normal&s=42&b=4.0_4.5");
+  assert.equal(await page.textContent("#routeTitle"), "SEA ✈ HNL");
+  assert.equal(await page.textContent("#levelBadge"), "🛠️ Custom");
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("the builder's Play Daily Bag button switches to the Pack tab", async () => {
+  const { page, errors, close } = await openGame();
+  await page.click("#tabMode2");
+  await page.click("#btnBuilder");
+  await page.click("[data-action=playDailyFromBuilder]");
+  assert.equal(await page.isVisible("#modeTetris"), true);
+  assert.equal(await page.textContent("#levelBadge"), "📅 Daily");
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+// Read the line-up from the tiles' on-screen grid positions
+async function readBoardingTiles(page) {
+  return page.$$eval(".pax-tile", (els) => {
+    const tiles = Array(9).fill(0);
+    const board = document.getElementById("shuffleBoard").getBoundingClientRect();
+    els.forEach((el) => {
+      const b = el.getBoundingClientRect();
+      const c = Math.round(((b.left - board.left) / board.width) * 3);
+      const r = Math.round(((b.top - board.top) / board.height) * 3);
+      tiles[r * 3 + c] = Number(el.id.replace("pax-", ""));
+    });
+    return tiles;
+  });
+}
+
+async function solveBoarding(page) {
+  await page.waitForTimeout(300); // let tile slide transitions settle before measuring
+  const taps = await boardingSolutionTaps(await readBoardingTiles(page));
+  for (const v of taps) await page.click(`#pax-${v}`);
+  await page.waitForSelector("#shuffleWinBanner.show");
+}
+
+test("Boarding pays miles for the first line-up of the day only", async () => {
+  const { page, errors, close } = await openGame();
+  await page.click("#tabMode3");
+  const m0 = await miles(page);
+  await solveBoarding(page); // shortest solution is always under par
+  assert.equal(await miles(page) - m0, 400);
+  await page.click("#btnNextShuffle");
+  assert.match(await page.textContent("#shuffleParText"), /PRACTICE/);
+  await solveBoarding(page);
+  assert.equal(await miles(page) - m0, 400, "second line-up paid again");
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("after one visit the game loads offline", async () => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto(URL_BASE);
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await page.reload(); // now controlled by the service worker
+  await page.waitForSelector("#itemTray .item-card");
+  await context.setOffline(true);
+  await page.reload();
+  await page.waitForSelector("#itemTray .item-card");
+  await page.click("#tabMode2");
+  assert.equal(await page.locator(".dest-btn").count(), 4);
+  await context.close();
+});
+
+test("a connected trip runs Pack → Route → Board and pays the itinerary bonus once", async () => {
+  const { page, errors, close } = await openGame();
+  const bag = generateBag(LEVELS[0]);
+  for (const item of bag.items) await packItem(page, item);
+  await page.waitForSelector("#winBanner.show");
+
+  await page.click("#btnContinueTrip");
+  assert.equal(await page.isVisible("#modeTrivia"), true);
+  assert.equal(await page.isVisible("#itineraryBar"), true);
+  const round = TRIVIA_ROUNDS.find((r) => r.origin === LEVELS[0].dest);
+  await page.click(`#dest-${round.answer}`);
+  await page.click("#btnBoardFlight");
+  assert.equal(await page.isVisible("#modeShuffle"), true);
+  assert.equal(await page.textContent("#routeTitle"), `${LEVELS[0].dest} ✈ ${round.answer}`);
+
+  const before = await miles(page);
+  await solveBoarding(page);
+  assert.equal(await miles(page) - before, 400 + 300, "boarding reward + itinerary bonus");
+  await page.click("#btnNextItineraryBag");
+  assert.equal(await page.textContent("#routeTitle"), LEVELS[1].route);
+  assert.match(await page.textContent("#levelChip-0"), /🎫/);
+  assert.deepEqual(errors, []);
+  await close();
+});
