@@ -1,0 +1,14 @@
+{
+  "name": "Carry-On Tetris — Gate Edition",
+  "short_name": "Carry-On",
+  "description": "A cozy, one-thumb airport gate game suite.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
