@@ -1033,7 +1033,7 @@
     <div class="leaderboard-card" id="dailyLeaderboard"></div>
     <div style="display:flex; gap:6px;">
       <button class="btn btn-xs btn-accent-outline" onclick="shareDailyResult()">📋 Copy Daily Score Card</button>
-      <button class="btn btn-xs" onclick="closeBuilder(); loadLevel('daily');">📅 Play Daily Bag</button>
+      <button class="btn btn-xs" onclick="closeBuilder(); switchMode('tetris'); loadLevel('daily');">📅 Play Daily Bag</button>
     </div>
 
     <div class="section-label">🧰 Procedural Bag Customizer (Level Editor)</div>
@@ -1101,7 +1101,7 @@
     <div class="shop-note">
       💡 <b>Packing Hint (150 MI)</b> — shows exactly where the selected item fits in a perfect pack.<br/>
       ✂️ <b>Trivia 50/50 (100 MI)</b> — removes one wrong destination.<br/>
-      Miles are only awarded the <b>first</b> time you earn each star or route each flight.
+      Miles are only awarded the <b>first</b> time you earn each star or route each flight, and for your first Boarding line-up each day.
     </div>
   </div>
 </div>
@@ -1172,7 +1172,8 @@
       tetrisLevel: 0,
       triviaIdx: 0,
       triviaSolved: {},  // roundId -> true
-      shuffleSolved: 0
+      shuffleSolved: 0,
+      shuffleRewardDay: null // dateKey of the last line-up that paid miles (one paid line-up per day)
     };
   }
 
@@ -1646,7 +1647,7 @@
 
     const solutionCells = info.flatMap(p => p.cells.map(([r, c]) => ({ r, c, rule: p.role === "BONUS" ? "NONE" : p.role })));
     const bal = computeBalance(rows, cfg.cols, solutionCells);
-    return { info, ok: bal.abs <= 16 && !bal.topHeavy };
+    return { info, ok: bal.abs <= 16 && !bal.topHeavy, score: bal.abs + (bal.topHeavy ? 100 : 0) };
   }
 
   function cellsToShape(cells) {
@@ -1659,14 +1660,15 @@
 
   function generateBag(cfg) {
     const blockedSet = new Set(cfg.blocked.map(([r, c]) => r + "," + c));
+    // Keep the most balanced solution so ⭐⭐⭐ stays reachable even if no attempt is perfectly balanced
     let best = null;
-    for (let attempt = 0; attempt < 80; attempt++) {
+    for (let attempt = 0; attempt < 400; attempt++) {
       const rng = mulberry32(cfg.seed * 977 + attempt * 7919);
       const pieces = partitionGrid(cfg.rows, cfg.cols, blockedSet, rng);
       if (!pieces) continue;
       const bag = assignRoles(pieces, cfg, rng);
       if (!bag) continue;
-      best = bag;
+      if (!best || bag.score < best.score) best = bag;
       if (bag.ok) break;
     }
     if (!best) {
@@ -1680,6 +1682,8 @@
         if (bag) { best = bag; break; }
       }
     }
+    // Layout can't be partitioned at all (e.g. a free cell walled in by blocked cells)
+    if (!best) return null;
     return buildItems(best, cfg);
   }
 
@@ -2932,8 +2936,12 @@
       el.classList.toggle("in-place", v === idx + 1);
     });
     $("shuffleMovesText").textContent = `MOVES: ${shuffleMoves}`;
-    $("shuffleParText").textContent = shuffleMoves <= SHUFFLE_PAR ? `PAR: ${SHUFFLE_PAR} → +400 MI` : `OVER PAR → +200 MI`;
+    $("shuffleParText").textContent = !shuffleRewardAvailable()
+      ? `PAR: ${SHUFFLE_PAR} • PRACTICE`
+      : shuffleMoves <= SHUFFLE_PAR ? `PAR: ${SHUFFLE_PAR} → +400 MI` : `OVER PAR → +200 MI`;
   }
+
+  const shuffleRewardAvailable = () => save.shuffleRewardDay !== todayKey();
 
   function tapPax(v) {
     if (shuffleDone) return;
@@ -2961,7 +2969,9 @@
 
     if (shuffleSolvedState(shuffleTiles)) {
       shuffleDone = true;
-      let earned = shuffleMoves <= SHUFFLE_PAR ? 400 : 200;
+      const dailyPaid = shuffleRewardAvailable();
+      let earned = !dailyPaid ? 0 : shuffleMoves <= SHUFFLE_PAR ? 400 : 200;
+      if (dailyPaid) save.shuffleRewardDay = todayKey();
       let itinBonus = 0;
       const nextBagBtn = $("btnNextItineraryBag");
       if (activeItinerary && activeItinerary.step === 3) {
@@ -2983,8 +2993,11 @@
       syncBoardingHeader();
       renderLevelStrip();
       fx.win();
-      setShuffleStatus(`✅ All groups lined up in ${shuffleMoves} moves! +${earned} Miles${itinBonus ? " (incl. +300 MI Itinerary Bonus!)" : ""}.`, "success");
-      $("shuffleWinTitle").textContent = `✅ Boarding Complete! (+${earned} MI)`;
+      const practiceNote = dailyPaid ? "" : " Today's boarding miles are already banked — back tomorrow for more!";
+      setShuffleStatus(earned
+        ? `✅ All groups lined up in ${shuffleMoves} moves! +${earned} Miles${itinBonus ? " (incl. +300 MI Itinerary Bonus!)" : ""}.${practiceNote}`
+        : `✅ All groups lined up in ${shuffleMoves} moves!${practiceNote}`, "success");
+      $("shuffleWinTitle").textContent = earned ? `✅ Boarding Complete! (+${earned} MI)` : "✅ Boarding Complete!";
       $("shuffleWinSub").textContent = shuffleMoves <= SHUFFLE_PAR ? `Under par (${SHUFFLE_PAR}) — on-time departure!` : `${shuffleMoves} moves — a little delayed, but boarded.`;
       $("shuffleWinBanner").classList.add("show");
     } else {
@@ -3011,6 +3024,15 @@
     strict: { top: 2, bottomHeavy: 1, heavy: 1, fragile: 2 }
   };
 
+  const maxBlockedFor = (rows, cols) => Math.max(0, rows * cols - 12);
+
+  // Generation is deterministic, so a trial run tells us whether a layout can be packed at all
+  const isPackable = (cfg) => !!generateBag(cfg);
+
+  function clearCustomHash() {
+    try { history.replaceState(null, "", location.pathname + location.search); } catch (e) { /* ignore */ }
+  }
+
   function openBuilder() {
     renderDailyLeaderboard();
     rebuildCustomPreviewGrid();
@@ -3032,7 +3054,7 @@
       const [r, c] = k.split(",").map(Number);
       if (r >= rows || c >= cols) builderBlocked.delete(k);
     });
-    const maxBlocked = Math.max(0, rows * cols - 12);
+    const maxBlocked = maxBlockedFor(rows, cols);
 
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
@@ -3116,8 +3138,11 @@
       const ruleKey = RULE_PRESETS[params.get("k")] ? params.get("k") : "normal";
       const seed = Math.max(1, Math.min(99999, Number(params.get("s")) || 777));
       const bRaw = params.get("b") || "";
+      const seen = new Set();
       const blocked = bRaw
-        ? bRaw.split("_").map(p => p.split(".").map(Number)).filter(([r, c]) => r >= 0 && r < rows && c >= 0 && c < cols)
+        ? bRaw.split("_").map(p => p.split(".").map(Number))
+            .filter(([r, c]) => r >= 0 && r < rows && c >= 0 && c < cols && !seen.has(r + "," + c) && seen.add(r + "," + c))
+            .slice(0, maxBlockedFor(rows, cols))
         : [];
       return {
         id: `custom-${origin}-${dest}-${rows}x${cols}-${seed}`,
@@ -3139,8 +3164,15 @@
     }
   }
 
+  function rejectUnpackable() {
+    toast("🚫 That layout can't be packed — unblock a few cells.");
+    fx.error();
+  }
+
   function playCustomBagFromModal() {
-    customBagCfg = buildCustomConfigFromInputs();
+    const cfg = buildCustomConfigFromInputs();
+    if (!isPackable(cfg)) { rejectUnpackable(); return; }
+    customBagCfg = cfg;
     try { history.replaceState(null, "", encodeCustomHash(customBagCfg)); } catch (e) { /* ignore */ }
     closeBuilder();
     switchMode("tetris");
@@ -3149,7 +3181,9 @@
   }
 
   function shareCustomBagUrl() {
-    customBagCfg = buildCustomConfigFromInputs();
+    const cfg = buildCustomConfigFromInputs();
+    if (!isPackable(cfg)) { rejectUnpackable(); return; }
+    customBagCfg = cfg;
     const hash = encodeCustomHash(customBagCfg);
     try { history.replaceState(null, "", hash); } catch (e) { /* ignore */ }
     const url = location.origin + location.pathname + hash;
@@ -3221,8 +3255,13 @@
       if (e.key === "Escape") closeBuilder();
       return;
     }
-    if (currentMode !== "tetris" || e.metaKey && e.key !== "z") return;
+    if (currentMode !== "tetris") return;
     const k = e.key.toLowerCase();
+    // Leave browser shortcuts (Ctrl+R reload, Ctrl+H history, …) alone; only Ctrl/⌘+Z maps to undo
+    if (e.ctrlKey || e.metaKey || e.altKey) {
+      if (k === "z" && !e.altKey && !e.shiftKey) { e.preventDefault(); undo(); }
+      return;
+    }
     if (k === "r") rotateSelected();
     else if (k === "z") { e.preventDefault(); undo(); }
     else if (k === "h") useHint();
@@ -3230,7 +3269,10 @@
 
   window.addEventListener("hashchange", () => {
     const parsed = parseCustomHash();
-    if (parsed) {
+    if (parsed && !isPackable(parsed)) {
+      clearCustomHash();
+      toast("🚫 That shared bag can't be packed.");
+    } else if (parsed) {
       customBagCfg = parsed;
       switchMode("tetris");
       loadLevel("custom");
@@ -3245,7 +3287,12 @@
   updateMilesDisplay();
   updateSoundIcon();
   initGridInput();
-  const initialCustom = parseCustomHash();
+  let initialCustom = parseCustomHash();
+  if (initialCustom && !isPackable(initialCustom)) {
+    initialCustom = null;
+    clearCustomHash();
+    setTimeout(() => toast("🚫 That shared bag can't be packed — starting a regular bag."), 300);
+  }
   if (initialCustom) {
     customBagCfg = initialCustom;
     loadLevel("custom");
