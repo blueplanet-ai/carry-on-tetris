@@ -1,7 +1,7 @@
 // Save data in localStorage. parseSave/migrateSave are pure so they can be unit-tested.
 
 export const SAVE_KEY = "gate_suite_save_v3";
-export const SAVE_VERSION = 1; // bump and add a step to migrateSave() whenever the save shape changes
+export const SAVE_VERSION = 2; // bump and add a step to migrateSave() whenever the save shape changes
 
 function storageGet(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -18,6 +18,7 @@ export function defaultSave(legacyMiles = Number(storageGet("gate_suite_miles") 
     bagStars: {},      // levelId -> star bitmask (1 packed, 2 balanced, 4 full)
     dailyStats: {},    // dateKey -> { moves, balancePct, stars, mask }
     itineraries: {},   // levelId -> true (completed Pack + Route + Board)
+    skippedBags: {},   // levelId -> true (skipped to open the next bag; no stars or miles)
     tetrisLevel: 0,
     triviaIdx: 0,
     triviaSolved: {},  // roundId -> true
@@ -35,6 +36,10 @@ export function migrateSave(raw, defaults = defaultSave()) {
       if (!s[k] || typeof s[k] !== "object") s[k] = {};
     });
     if (!Array.isArray(s.ownedSkins)) s.ownedSkins = ["classic"];
+  }
+  if ((raw.version || 0) < 2) {
+    // v2 added skippedBags; repair it in case an older build stored something odd there
+    if (!s.skippedBags || typeof s.skippedBags !== "object") s.skippedBags = {};
   }
   s.version = SAVE_VERSION;
   return s;

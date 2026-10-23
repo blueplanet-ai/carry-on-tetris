@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon.svg" />
-  <title>Carry-On Tetris — Gate Edition (v0.5)</title>
+  <title>Carry-On Tetris — Gate Edition (v0.6)</title>
   <link rel="stylesheet" href="css/styles.css" />
   <script type="module" src="js/main.js"></script>
 </head>
@@ -121,6 +121,7 @@
       <button class="btn btn-accent-outline" id="btnHint" data-action="hint" title="Hint (H)">💡 150</button>
       <button class="btn" id="btnReset" data-action="reset" title="Unpack everything">🗑️ Reset</button>
     </div>
+    <button class="btn btn-ghost btn-xs skip-btn" id="btnSkipBag" data-action="skipBag" hidden>⏭ Stuck? Skip this bag</button>
 
     <div class="tray-header">
       <span>ITEMS TO PACK (<span id="packedCount">0/0</span>)</span>
@@ -133,6 +134,7 @@
        MODE 2: WHERE ARE WE FLYING? (GEO-DEDUCTION TRIVIA)
        ===================================================== -->
   <section id="modeTrivia" class="mode-view hidden" aria-label="Where Are We Flying trivia">
+    <div class="level-strip" id="flightStrip" aria-label="Trivia flights"></div>
     <div class="radar-card">
       <svg class="radar-svg" viewBox="0 0 280 140" role="img" aria-label="Flight radar showing the route heading">
         <defs>
@@ -208,7 +210,7 @@
        ===================================================== -->
   <section id="modeShuffle" class="mode-view hidden" aria-label="Boarding Group Shuffle">
     <div class="rule-banner" id="shuffleStatusBanner">
-      <span id="shuffleStatusText">🚶 Line passengers up Groups 1–8, leaving the jet bridge door open.</span>
+      <span id="shuffleStatusText">🚶 Line the boarding groups up in order, leaving the jet bridge door open.</span>
     </div>
 
     <div class="shuffle-card">

@@ -1,7 +1,7 @@
 # Project Handover: Carry-On Tetris (Gate Edition)
 
 **Date:** 2026-10-23  
-**Current Version:** v0.5  
+**Current Version:** v0.6  
 **Status:** Playable, tested, zero-dependency client-side PWA  
 **Stack:** Vanilla HTML5, CSS3, ES modules (no build step), Web Audio API, Web Haptics, Service Worker (network-first, offline fallback)  
 
@@ -93,6 +93,14 @@ Since v0.5 the game is split into ES modules (no bundler). The game logic that d
 3. **Tooling:** `package.json` with `npm start`, `npm test`, `npm run test:e2e` and `npm run lint` (ESLint); CI on every pull request.
 4. **Hardening:** share-link airport codes are letters only.
 
+
+### 🛫 What Was Added in v0.6
+1. **Wide-body boarding:** connected trips from the 4th bag on (LHR ✈ RAK onward) board a 4×4 cabin with Groups 1–15, paying 600 / 300 MI (under / over par) instead of 400 / 200. Free play stays 3×3. 4×4 lines use a 30-move scramble so the exact solver (`solve()` in `js/boarding-logic.js`, now returning the move list) finishes in milliseconds; it has a work budget, and if that runs out par falls back to the scramble length, which is always a valid solution.
+2. **Trivia flights unlock as you pack:** each flight has an `unlockBag` in `js/data/trivia-rounds.js`. Two flights are open from the start and each hand-made bag opens two more, including the flight leaving that bag's destination (for connected trips). Flights already routed stay open. A flight strip in Trivia shows routed ✓, open and 🔒 flights; tapping a locked one says which bag opens it.
+3. **Perfect and skipped bags:** a 3-star bag gets 🏆 on its chip and header badge, and replaying it says the stars are banked. A stuck player can skip a hand-made bag (second tap confirms) to open the next one. Skipping earns nothing, marks the chip ⏭, and doesn't unlock that bag's trivia flights. Rules live in the pure `js/progress.js`.
+4. **Save v2:** adds `skippedBags`.
+5. **Header fix:** on narrow phones the header controls now wrap below a long route title instead of overlapping it.
+
 ---
 
 ## 4. Save Data Schema (`localStorage`)
@@ -101,7 +109,7 @@ Key: `gate_suite_save_v3`
 
 ```json
 {
-  "version": 1,
+  "version": 2,
   "miles": 1200,
   "lifetime": 1200,
   "muted": false,
@@ -113,6 +121,9 @@ Key: `gate_suite_save_v3`
   },
   "dailyStats": {
     "2026-10-22": { "moves": 8, "balancePct": 94, "stars": 3, "mask": 7 }
+  },
+  "skippedBags": {
+    "jfk-lhr": true
   },
   "itineraries": {
     "sfo-lax": true

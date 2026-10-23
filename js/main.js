@@ -32,6 +32,7 @@ const ACTIONS = {
   undo: pack.undo,
   hint: pack.useHint,
   reset: pack.resetLevel,
+  skipBag: pack.skipBag,
   unlockClue: (n) => trivia.unlockClue(Number(n)),
   fiftyFifty: trivia.fiftyFifty,
   nextFlight: trivia.nextTriviaRound,

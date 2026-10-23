@@ -6,6 +6,8 @@ import { addMiles, spendMiles } from "../economy.js";
 import { app } from "../state.js";
 import { syncBoardingHeader, switchMode } from "../shell.js";
 import { TRIVIA_ROUNDS } from "../data/trivia-rounds.js";
+import { LEVELS } from "../generator.js";
+import { isRoundUnlocked } from "../progress.js";
 import { newShuffle } from "./boarding.js";
 
 const TRIVIA_START_POT = 500;
@@ -18,12 +20,19 @@ let triviaRoundOver = false;
 let triviaPractice = false;
 let fiftyUsed = false;
 
+const unlocked = (idx) => isRoundUnlocked(TRIVIA_ROUNDS[idx], save);
+const unlockHint = (round) => {
+  const bag = LEVELS.find(lv => lv.id === round.unlockBag);
+  return bag ? `Pack the ${bag.route} bag to unlock this flight.` : "";
+};
+
 export function triviaHeader() {
   const round = TRIVIA_ROUNDS[currentTriviaIdx];
   const solved = Object.keys(save.triviaSolved).length;
+  const open = TRIVIA_ROUNDS.filter((r, i) => unlocked(i)).length;
   return {
     title: `${round.origin} ✈ ${triviaRoundOver ? round.answer : "???"}`,
-    subtitle: `Where Are We Flying? • Routed ${solved}/${TRIVIA_ROUNDS.length}`,
+    subtitle: `Where Are We Flying? • Routed ${solved}/${TRIVIA_ROUNDS.length}` + (open < TRIVIA_ROUNDS.length ? ` • ${TRIVIA_ROUNDS.length - open} locked` : ""),
     badge: `Flight ${currentTriviaIdx + 1}/${TRIVIA_ROUNDS.length}`
   };
 }
@@ -75,7 +84,32 @@ function updatePot() {
   $("telemetryPot").textContent = triviaPractice ? "PRACTICE • NO MILES" : `REWARD POOL: +${currentTriviaPot} MI`;
 }
 
+// One chip per flight: routed ✓, open, or 🔒 until its bag is packed
+export function renderFlightStrip() {
+  const strip = $("flightStrip");
+  strip.innerHTML = "";
+  TRIVIA_ROUNDS.forEach((round, i) => {
+    const open = unlocked(i);
+    const solved = !!save.triviaSolved[round.id];
+    const chip = document.createElement("button");
+    chip.id = `flightChip-${round.id}`;
+    chip.className = "level-chip" + (i === currentTriviaIdx ? " active" : "") + (open ? "" : " locked") + (solved ? " solved" : "");
+    chip.innerHTML = `<span>${open ? "" : "🔒 "}${round.origin}</span><span class="chip-stars">${solved ? `✓ ${round.answer}` : "???"}</span>`;
+    chip.title = open ? `${round.origin} ✈ ${solved ? round.answer : "???"}` : unlockHint(round);
+    chip.onclick = () => {
+      if (!open) { setTriviaStatus(`🔒 ${unlockHint(round)}`, "error"); fx.error(); return; }
+      fx.tap();
+      loadTriviaRound(i);
+    };
+    strip.appendChild(chip);
+  });
+  const active = strip.querySelector(".active");
+  if (active) strip.scrollTo({ left: active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2, behavior: "smooth" });
+}
+
 export function loadTriviaRound(idx) {
+  // A locked flight (e.g. a stale saved index) falls back to the first open one
+  if (!unlocked(idx)) idx = TRIVIA_ROUNDS.findIndex((r, i) => unlocked(i));
   currentTriviaIdx = idx;
   save.triviaIdx = idx;
   persist();
@@ -86,6 +120,7 @@ export function loadTriviaRound(idx) {
   fiftyUsed = false;
 
   syncBoardingHeader();
+  renderFlightStrip();
   drawRadar(round);
   $("radarOriginText").textContent = round.origin;
   $("radarDestText").textContent = "???";
@@ -176,6 +211,7 @@ function handleTriviaGuess(iata, city, btnEl) {
     if (!triviaPractice) {
       save.triviaSolved[round.id] = true;
       persist();
+      renderFlightStrip();
     }
     if (earned) addMiles(earned);
     syncBoardingHeader();
@@ -212,19 +248,18 @@ function handleTriviaGuess(iata, city, btnEl) {
 }
 
 export function nextTriviaRound() {
-  // Prefer the next un-routed flight; fall back to sequential practice
+  // Prefer the next open, un-routed flight; otherwise practice the next open one
   const n = TRIVIA_ROUNDS.length;
-  for (let k = 1; k <= n; k++) {
-    const idx = (currentTriviaIdx + k) % n;
-    if (!save.triviaSolved[TRIVIA_ROUNDS[idx].id]) { loadTriviaRound(idx); return; }
-  }
-  loadTriviaRound((currentTriviaIdx + 1) % n);
+  const order = Array.from({ length: n }, (_, k) => (currentTriviaIdx + 1 + k) % n).filter(unlocked);
+  const fresh = order.find(idx => !save.triviaSolved[TRIVIA_ROUNDS[idx].id]);
+  if (fresh === undefined && order.length < n) toast("🔒 Pack more bags to unlock new flights!");
+  loadTriviaRound(fresh ?? order[0]);
 }
 
 export function continueToBoarding() {
   switchMode("shuffle");
   newShuffle();
   if (app.itinerary) {
-    toast(`🚶 Boarding ${app.itinerary.dest} ✈ ${app.itinerary.nextDest} — line up Groups 1–8!`);
+    toast(`🚶 Boarding ${app.itinerary.dest} ✈ ${app.itinerary.nextDest} — line up the boarding groups!`);
   }
 }

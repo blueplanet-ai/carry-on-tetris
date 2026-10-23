@@ -25,3 +25,11 @@ test("current saves keep all their fields", () => {
   const saved = { ...defaults(), miles: 321, skin: "neon", ownedSkins: ["classic", "neon"], bagStars: { "sfo-lax": 7 } };
   assert.deepEqual(parseSave(JSON.stringify(saved), defaults()), saved);
 });
+
+test("v1 saves gain skippedBags", () => {
+  const v1 = { ...defaults(), version: 1 };
+  delete v1.skippedBags;
+  const s = parseSave(JSON.stringify(v1), defaults());
+  assert.equal(s.version, SAVE_VERSION);
+  assert.deepEqual(s.skippedBags, {});
+});

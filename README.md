@@ -33,8 +33,9 @@ CI runs all of these on every pull request (`.github/workflows/ci.yml`).
 | `js/modes/pack.js`, `trivia.js`, `boarding.js` | The three game modes (UI and per-mode state). |
 | `js/generator.js` | Levels, themes and the solvable-bag generator. **Pure** (no DOM). |
 | `js/packing.js` | Placement rules and weight balance. **Pure.** |
-| `js/boarding-logic.js` | Sliding-puzzle rules and the shortest-solution solver. **Pure.** |
+| `js/boarding-logic.js` | Sliding-puzzle rules (3×3 and 4×4) and the shortest-solution solver. **Pure.** |
 | `js/custom-bag.js` | Custom bag configs and share-link parsing. **Pure.** |
+| `js/progress.js` | Which bags and trivia flights are open, skipping, perfect bags. **Pure.** |
 | `js/save.js` | Save data in `localStorage`, with versioned migrations. |
 | `js/economy.js`, `audio.js`, `shell.js`, `builder.js`, `state.js`, `util.js` | Miles and shop, sound, header and mode tabs, the 🛠️ window, shared state, helpers. |
 | `js/data/trivia-rounds.js` | Trivia flights and clues. |

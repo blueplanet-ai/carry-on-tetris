@@ -8,7 +8,8 @@ import { syncBoardingHeader, switchMode } from "../shell.js";
 import { RULE_META, LEVELS, dailyConfig, generateBag } from "../generator.js";
 import { computeBalance, placementBase, validatePlacement } from "../packing.js";
 import { TRIVIA_ROUNDS } from "../data/trivia-rounds.js";
-import { loadTriviaRound } from "./trivia.js";
+import { loadTriviaRound, renderFlightStrip } from "./trivia.js";
+import { isLevelUnlocked as levelOpen, canSkipLevel, isPerfect, isRoundUnlocked, roundsUnlockedBy } from "../progress.js";
 
 const HINT_COST = 150;
 const STAR_REWARDS = { 1: 300, 2: 200, 4: 500 };
@@ -27,6 +28,8 @@ let undoStack = [];
 let hintedIds = new Set(); // items whose hint was already paid for on this bag
 let lastPlacedId = null;
 let packMoves = 0;
+let skipArmed = false; // the skip button needs a second tap to confirm
+let skipTimer = null;
 
 // Input state (touch: tap-to-preview, tap-again-to-place)
 let lastPointerType = window.matchMedia && matchMedia("(pointer: coarse)").matches ? "touch" : "mouse";
@@ -39,7 +42,7 @@ const isTouchInput = () => lastPointerType === "touch" || lastPointerType === "p
 
 const getItem = (id) => itemsState.find(i => i.id === id);
 const cloneItem = (it) => ({ ...it, shape: it.shape.map(r => [...r]), solCells: it.solCells.map(c => [...c]), packed: false });
-export const isLevelUnlocked = (i) => i === 0 || ((save.bagStars[LEVELS[i - 1].id] || 0) & 1) === 1;
+export const isLevelUnlocked = (i) => levelOpen(LEVELS, i, save);
 
 export function loadLevel(idx) {
   const daily = idx === "daily";
@@ -59,6 +62,8 @@ export function loadLevel(idx) {
     if (app.itinerary && app.itinerary.levelIdx !== nIdx) app.itinerary = null;
   }
   generated = generateBag(levelCfg);
+  skipArmed = false;
+  clearTimeout(skipTimer);
 
   curveballPrompted = false;
   curveballAccepted = false;
@@ -82,7 +87,11 @@ export function loadLevel(idx) {
 
   const first = itemsState[0];
   const intro = levelCfg.isDaily ? "📅 Daily Bag! " : levelCfg.isCustom ? "🛠️ Custom Bag! " : "";
-  setStatus(`${intro}Fill every slot for ⭐⭐⭐. Selected ${first.emoji} ${first.name}: ${first.desc}`, "normal");
+  if (isPerfect(save.bagStars[levelCfg.id] || 0)) {
+    setStatus(`🏆 You've already zipped this bag perfectly — replay it for fun (stars are banked). Selected ${first.emoji} ${first.name}.`, "success");
+  } else {
+    setStatus(`${intro}Fill every slot for ⭐⭐⭐. Selected ${first.emoji} ${first.name}: ${first.desc}`, "normal");
+  }
   renderAll();
 }
 
@@ -516,12 +525,13 @@ export function packHeader() {
   return {
     title: levelCfg.route,
     subtitle: levelCfg.subtitle,
-    badge: levelCfg.isDaily ? "📅 Daily" : levelCfg.isCustom ? "🛠️ Custom" : `Bag ${currentLevelIdx + 1}/${LEVELS.length}`
+    badge: (levelCfg.isDaily ? "📅 Daily" : levelCfg.isCustom ? "🛠️ Custom" : `Bag ${currentLevelIdx + 1}/${LEVELS.length}`)
+      + (isPerfect(save.bagStars[levelCfg.id] || 0) ? " 🏆" : "")
   };
 }
 
 function tripRoundIndex() {
-  return levelCfg ? TRIVIA_ROUNDS.findIndex(r => r.origin === levelCfg.dest) : -1;
+  return levelCfg ? TRIVIA_ROUNDS.findIndex(r => r.origin === levelCfg.dest && isRoundUnlocked(r, save)) : -1;
 }
 
 export function continueTrip() {
@@ -575,6 +585,7 @@ function checkWin(silent = false) {
 
   persist();
   if (earned) addMiles(earned);
+  if (newBits & 1) announceUnlockedFlights(key);
 
   const curveballPending = curveballPrompted && !curveballAccepted && !curveballDeclined;
   $("winStars").innerHTML = [1, 2, 4].map(b => (mask & b) ? "★" : `<span class="dim">★</span>`).join("");
@@ -606,9 +617,46 @@ function checkWin(silent = false) {
 
   setStatus(`🎉 ${starString(mask)} All items packed within TSA rules!`, "success");
   renderLevelStrip();
+  updateSkipButton();
   updateCurveballBanner();
   syncBoardingHeader();
   if (!silent) fx.win();
+}
+
+function announceUnlockedFlights(bagId) {
+  const opened = roundsUnlockedBy(TRIVIA_ROUNDS, bagId);
+  if (!opened.length) return;
+  renderFlightStrip();
+  const list = opened.map(r => `${r.origin} ✈ ???`).join(" & ");
+  setTimeout(() => toast(`🛫 New trivia flight${opened.length > 1 ? "s" : ""} unlocked: ${list}`), 1200);
+}
+
+/* Skipping a stuck bag (hand-made levels only) */
+const skippable = () => levelCfg && !levelCfg.isDaily && !levelCfg.isCustom && canSkipLevel(LEVELS, currentLevelIdx, save);
+
+function updateSkipButton() {
+  const btn = $("btnSkipBag");
+  btn.hidden = !skippable() || levelWon;
+  btn.textContent = skipArmed ? "⏭ Tap again to skip — no stars or miles" : "⏭ Stuck? Skip this bag";
+  btn.classList.toggle("armed", skipArmed);
+}
+
+export function skipBag() {
+  if (!skippable()) return;
+  if (!skipArmed) {
+    skipArmed = true;
+    clearTimeout(skipTimer);
+    skipTimer = setTimeout(() => { skipArmed = false; updateSkipButton(); }, 4000);
+    fx.tap();
+    updateSkipButton();
+    return;
+  }
+  skipArmed = false;
+  clearTimeout(skipTimer);
+  save.skippedBags[levelCfg.id] = true;
+  persist();
+  toast(`⏭ Skipped ${levelCfg.route} — come back any time to earn its stars.`);
+  loadNextBagAfter(currentLevelIdx);
 }
 
 /* Rendering */
@@ -619,15 +667,19 @@ export function renderLevelStrip() {
     const unlocked = isLevelUnlocked(i);
     const mask = save.bagStars[lv.id] || 0;
     const itinDone = save.itineraries && save.itineraries[lv.id];
+    const perfect = isPerfect(mask);
+    const skipped = !(mask & 1) && save.skippedBags[lv.id];
     const chip = document.createElement("button");
     chip.id = `levelChip-${i}`;
     chip.className = "level-chip";
     if (!levelCfg.isDaily && !levelCfg.isCustom && i === currentLevelIdx) chip.classList.add("active");
     if (!unlocked) chip.classList.add("locked");
-    chip.innerHTML = `<span>${unlocked ? (itinDone ? "🎫 " : "") : "🔒 "}${lv.dest}</span><span class="chip-stars">${starString(mask)}</span>`;
-    chip.title = lv.route + (itinDone ? " • Full Itinerary Completed" : "");
+    if (perfect) chip.classList.add("perfect");
+    const marks = !unlocked ? "🔒 " : `${perfect ? "🏆 " : ""}${itinDone ? "🎫 " : ""}${skipped ? "⏭ " : ""}`;
+    chip.innerHTML = `<span>${marks}${lv.dest}</span><span class="chip-stars">${starString(mask)}</span>`;
+    chip.title = lv.route + (perfect ? " • Zipped perfectly" : "") + (itinDone ? " • Full Itinerary Completed" : "") + (skipped ? " • Skipped" : "");
     chip.onclick = () => {
-      if (!unlocked) { setStatus(`🔒 Pack bag ${i} first to unlock ${lv.route}.`, "error"); fx.error(); return; }
+      if (!unlocked) { setStatus(`🔒 Pack (or skip) bag ${i} first to unlock ${lv.route}.`, "error"); fx.error(); return; }
       fx.tap();
       loadLevel(i);
     };
@@ -637,7 +689,7 @@ export function renderLevelStrip() {
   const dailyMask = save.bagStars["daily-" + todayKey()] || 0;
   const daily = document.createElement("button");
   daily.id = "levelChip-daily";
-  daily.className = "level-chip daily" + (levelCfg.isDaily ? " active" : "");
+  daily.className = "level-chip daily" + (levelCfg.isDaily ? " active" : "") + (isPerfect(dailyMask) ? " perfect" : "");
   daily.innerHTML = `<span>📅 Daily</span><span class="chip-stars">${starString(dailyMask)}</span>`;
   daily.onclick = () => { fx.tap(); loadLevel("daily"); };
   strip.appendChild(daily);
@@ -646,7 +698,7 @@ export function renderLevelStrip() {
     const custMask = save.bagStars[app.customBagCfg.id] || 0;
     const cust = document.createElement("button");
     cust.id = "levelChip-custom";
-    cust.className = "level-chip custom" + (levelCfg.isCustom ? " active" : "");
+    cust.className = "level-chip custom" + (levelCfg.isCustom ? " active" : "") + (isPerfect(custMask) ? " perfect" : "");
     cust.innerHTML = `<span>🛠️ ${app.customBagCfg.dest}</span><span class="chip-stars">${starString(custMask)}</span>`;
     cust.onclick = () => { fx.tap(); loadLevel("custom"); };
     strip.appendChild(cust);
@@ -743,6 +795,7 @@ function renderAll() {
 
   const sel = getItem(selectedItemId);
   $("btnUndo").disabled = undoStack.length === 0;
+  updateSkipButton();
   $("btnRotate").disabled = !sel || sel.packed;
   $("btnHint").disabled = !sel || sel.packed;
   $("btnHint").textContent = sel && hintedIds.has(sel.id) ? "💡 Shown" : `💡 ${HINT_COST}`;

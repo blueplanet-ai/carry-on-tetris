@@ -22,9 +22,14 @@ after(async () => {
   server?.close();
 });
 
-// Fresh browser profile per test (empty save), collecting any page errors
-async function openGame(hash = "", contextOptions = {}) {
+// Fresh browser profile per test, collecting any page errors. `save` seeds localStorage before the game boots.
+async function openGame(hash = "", contextOptions = {}, save = null) {
   const context = await browser.newContext({ viewport: { width: 420, height: 900 }, ...contextOptions });
+  if (save) {
+    await context.addInitScript((json) => {
+      if (!sessionStorage.getItem("seeded")) { localStorage.setItem("gate_suite_save_v3", json); sessionStorage.setItem("seeded", "1"); }
+    }, JSON.stringify(save));
+  }
   const page = await context.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -73,7 +78,12 @@ test("packing the first bag perfectly earns three stars and 1,000 miles", async 
   await page.waitForSelector("#winBanner.show");
   assert.equal(await page.locator("#winStars .dim").count(), 0, "a star is missing");
   assert.equal(await miles(page) - startMiles, 300 + 200 + 500);
-  assert.match(await page.textContent("#levelChip-0"), /★★★/);
+  assert.match(await page.textContent("#levelChip-0"), /🏆.*★★★/);
+  assert.match(await page.getAttribute("#levelChip-0", "class"), /perfect/);
+  await page.click("#btnNextBag");
+  await page.click("#levelChip-0");
+  assert.match(await page.textContent("#levelBadge"), /🏆/);
+  assert.match(await page.textContent("#statusText"), /already zipped this bag perfectly/);
   assert.deepEqual(errors, []);
   await close();
 });
@@ -155,13 +165,14 @@ test("the builder's Play Daily Bag button switches to the Pack tab", async () =>
 // Read the line-up from the tiles' on-screen grid positions
 async function readBoardingTiles(page) {
   return page.$$eval(".pax-tile", (els) => {
-    const tiles = Array(9).fill(0);
+    const n = Math.round(Math.sqrt(els.length + 1));
+    const tiles = Array(n * n).fill(0);
     const board = document.getElementById("shuffleBoard").getBoundingClientRect();
     els.forEach((el) => {
       const b = el.getBoundingClientRect();
-      const c = Math.round(((b.left - board.left) / board.width) * 3);
-      const r = Math.round(((b.top - board.top) / board.height) * 3);
-      tiles[r * 3 + c] = Number(el.id.replace("pax-", ""));
+      const c = Math.round(((b.left - board.left) / board.width) * n);
+      const r = Math.round(((b.top - board.top) / board.height) * n);
+      tiles[r * n + c] = Number(el.id.replace("pax-", ""));
     });
     return tiles;
   });
@@ -226,4 +237,80 @@ test("a connected trip runs Pack → Route → Board and pays the itinerary bonu
   assert.match(await page.textContent("#levelChip-0"), /🎫/);
   assert.deepEqual(errors, []);
   await close();
+});
+
+test("skipping a stuck bag needs a second tap, opens the next bag and earns nothing", async () => {
+  const { page, errors, close } = await openGame();
+  const m0 = await miles(page);
+  assert.equal(await page.isVisible("#btnSkipBag"), true);
+  await page.click("#btnSkipBag");
+  assert.equal(await page.textContent("#routeTitle"), LEVELS[0].route, "first tap must only arm the skip");
+  assert.match(await page.textContent("#btnSkipBag"), /Tap again/);
+  await page.click("#btnSkipBag");
+  assert.equal(await page.textContent("#routeTitle"), LEVELS[1].route);
+  assert.match(await page.textContent("#levelChip-0"), /⏭/);
+  assert.equal(await miles(page), m0);
+  // skipping doesn't open the trivia flight tied to that bag
+  await page.click("#tabMode2");
+  assert.match(await page.getAttribute("#flightChip-lax-mex", "class"), /locked/);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("trivia flights unlock as bags are packed", async () => {
+  const { page, errors, close } = await openGame();
+  await page.click("#tabMode2");
+  assert.equal(await page.locator("#flightStrip .level-chip.locked").count(), TRIVIA_ROUNDS.filter(r => r.unlockBag).length);
+  await page.click("#flightChip-lax-mex");
+  assert.match(await page.textContent("#triviaStatusText"), /Pack the SFO ✈ LAX bag/);
+
+  await page.click("#tabMode1");
+  for (const item of generateBag(LEVELS[0]).items) await packItem(page, item);
+  await page.waitForSelector("#winBanner.show");
+  await page.waitForSelector("#toast.show");
+  assert.match(await page.textContent("#toast"), /New trivia flight/);
+  await page.click("#tabMode2");
+  assert.doesNotMatch(await page.getAttribute("#flightChip-lax-mex", "class"), /locked/);
+  await page.click("#flightChip-lax-mex");
+  assert.equal(await page.textContent("#radarOriginText"), "LAX");
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("later trip legs board a 4×4 wide-body cabin", async () => {
+  // Start with the first three bags skipped, so LHR ✈ RAK (bag 4) is open
+  const skippedBags = Object.fromEntries(LEVELS.slice(0, 3).map(lv => [lv.id, true]));
+  const { page, errors, close } = await openGame("", {}, { version: 2, miles: 1200, lifetime: 1200, skippedBags, tetrisLevel: 3 });
+  assert.equal(await page.textContent("#routeTitle"), LEVELS[3].route);
+  for (const item of generateBag(LEVELS[3]).items) await packItem(page, item);
+  await page.waitForSelector("#winBanner.show");
+  await page.click("#btnContinueTrip");
+  const round = TRIVIA_ROUNDS.find(r => r.origin === LEVELS[3].dest);
+  await page.click(`#dest-${round.answer}`);
+  await page.click("#btnBoardFlight");
+
+  assert.equal(await page.locator(".pax-tile").count(), 15);
+  assert.match(await page.textContent("#shuffleParText"), /\+600 MI/);
+  const before = await miles(page);
+  await solveBoarding(page);
+  assert.equal(await miles(page) - before, 600 + 300, "4×4 reward + itinerary bonus");
+  // free play afterwards is back to the 3×3 cabin
+  await page.click("#btnNewShuffle");
+  assert.equal(await page.locator(".pax-tile").count(), 8);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
+test("the route title never overlaps the header controls on phone widths", async () => {
+  const save = { version: 2, bagStars: { "sfo-lax": 1, "lax-hnl": 1, "jfk-lhr": 1, "lhr-rak": 1 }, tetrisLevel: 4 }; // ICN ✈ CTS
+  for (const width of [360, 390, 430]) {
+    const { page, close } = await openGame("", { viewport: { width, height: 800 } }, save);
+    const overlap = await page.evaluate(() => {
+      const t = document.getElementById("routeTitle").getBoundingClientRect();
+      const c = document.querySelector(".level-controls").getBoundingClientRect();
+      return t.right > c.left && t.bottom > c.top && c.bottom > t.top;
+    });
+    assert.equal(overlap, false, `title overlaps the controls at ${width}px`);
+    await close();
+  }
 });
