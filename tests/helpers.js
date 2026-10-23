@@ -32,27 +32,8 @@ export function solutionMove(item) {
 // Seeded RNG for repeatable random tests
 export { mulberry32 } from "../js/util.js";
 
-// Shortest list of passengers to tap (one step each) to solve a Boarding line-up
+// Shortest list of passengers to tap (one step each) to solve a Boarding line-up (3×3 or 4×4)
 export async function boardingSolutionTaps(tiles) {
-  const { neighbors, isSolved } = await import("../js/boarding-logic.js");
-  const prev = new Map([[tiles.join(), null]]);
-  let frontier = [tiles];
-  while (frontier.length) {
-    const next = [];
-    for (const cur of frontier) {
-      if (isSolved(cur)) {
-        const taps = [];
-        for (let k = cur.join(); prev.get(k); k = prev.get(k).from) taps.unshift(prev.get(k).tap);
-        return taps;
-      }
-      const e = cur.indexOf(0);
-      for (const nb of neighbors(e)) {
-        const t = [...cur];
-        [t[e], t[nb]] = [t[nb], t[e]];
-        if (!prev.has(t.join())) { prev.set(t.join(), { from: cur.join(), tap: cur[nb] }); next.push(t); }
-      }
-    }
-    frontier = next;
-  }
-  return null;
+  const { solve } = await import("../js/boarding-logic.js");
+  return solve(tiles);
 }

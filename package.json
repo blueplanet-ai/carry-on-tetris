@@ -1,6 +1,6 @@
 {
   "name": "carry-on-tetris",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "description": "A cozy, one-thumb airport gate game suite (zero runtime dependencies).",
   "type": "module",
