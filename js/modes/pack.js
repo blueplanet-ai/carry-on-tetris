@@ -1,4 +1,4 @@
-// Mode 1: Carry-On Tetris — pack every item into the suitcase under TSA and weight rules.
+// Mode 1: Pack Your Carry-On — pack every item into the suitcase under TSA and weight rules.
 import { $, starString, popcount, rotateMatrix, toast, todayKey } from "../util.js";
 import { save, persist } from "../save.js";
 import { fx } from "../audio.js";

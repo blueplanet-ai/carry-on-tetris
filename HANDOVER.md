@@ -1,4 +1,4 @@
-# Project Handover: Carry-On Tetris (Gate Edition)
+# Project Handover: Gate Games
 
 **Date:** 2026-10-23  
 **Current Version:** v0.6  
@@ -9,7 +9,7 @@
 
 ## 1. Executive Summary
 
-Carry-On Tetris is an airport gate game suite designed for travelers waiting at boarding gates. It caters to **single-thumb mobile play**, **zero reflex/interruptible game loops**, and **spotty airport Wi-Fi**.
+Gate Games (formerly Carry-On Tetris) is an airport gate game suite designed for travelers waiting at boarding gates. It caters to **single-thumb mobile play**, **zero reflex/interruptible game loops**, and **spotty airport Wi-Fi**.
 
 In v0.3 & v0.4, the suite was upgraded from a 2-mode prototype (v0.2) to a complete 3-mode offline-ready PWA with balanced puzzle generation, economy progression, sound design, multi-leg flight route connections, a daily flight leaderboard, and a shareable procedural bag customizer / level editor.
 
@@ -24,7 +24,7 @@ Since v0.5 the game is split into ES modules (no bundler). The game logic that d
 | [`index.html`](index.html) | Page markup only. Buttons declare `data-action` / `data-arg`; `js/main.js` maps them to functions. |
 | [`css/styles.css`](css/styles.css) | All styling. |
 | [`js/main.js`](js/main.js) | Entry point: action map, keyboard shortcuts, share-link listener, boot. |
-| [`js/modes/`](js/modes) | `pack.js` (Carry-On Tetris), `trivia.js` (Where Are We Flying?), `boarding.js` (Boarding Group Shuffle). Each exports a `…Header()` used by `js/shell.js`. |
+| [`js/modes/`](js/modes) | `pack.js` (Pack Your Carry-On), `trivia.js` (Where Are We Flying?), `boarding.js` (Boarding Group Shuffle). Each exports a `…Header()` used by `js/shell.js`. |
 | [`js/generator.js`](js/generator.js), [`js/packing.js`](js/packing.js), [`js/boarding-logic.js`](js/boarding-logic.js), [`js/custom-bag.js`](js/custom-bag.js) | Pure logic: bag generator and content, placement rules and balance, sliding-puzzle solver, share links. |
 | [`js/save.js`](js/save.js) | Versioned save data (`migrateSave`). |
 | [`js/state.js`](js/state.js) | The only cross-mode state: active mode, connected itinerary, custom bag. |
@@ -57,7 +57,7 @@ Since v0.5 the game is split into ES modules (no bundler). The game logic that d
 5. **Keyboard Shortcuts:** `R` (rotate), `Z` (undo), `H` (hint), `Esc` (close shop modal).
 
 ### 🎮 Modes & Features
-- **Mode 1: Carry-On Tetris:** 6 progressive destinations (SFO, LAX, JFK, LHR, CTS, SYD) + Daily Flight. Merged visual block borders + single-centroid emoji styling.
+- **Mode 1: Pack Your Carry-On:** 6 progressive destinations (SFO, LAX, JFK, LHR, CTS, SYD) + Daily Flight. Merged visual block borders + single-centroid emoji styling.
 - **Mode 2: Where Are We Flying? (Geo-Trivia):** Expanded from 3 to 12 international routes with dynamic SVG radar heading arcs, animated flying plane, and a 50/50 hint tool (`✂️ 50/50` for 100 MI).
 - **Mode 3: Boarding Group Shuffle:** Brand new 3x3 sliding-tile minigame. Players slide passengers (Groups 1–8) into sequential order towards the open jet bridge door. Includes par scoring.
 - **Frequent Flyer Shop & Tiers:**

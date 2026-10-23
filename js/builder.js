@@ -174,7 +174,7 @@ export function shareDailyResult() {
   const st = save.dailyStats && save.dailyStats[key];
   const stars = st ? "⭐".repeat(st.stars) : "☆☆☆ (Unpacked)";
   const details = st ? `${st.moves} moves • ${st.balancePct}% balance` : "Try today's gate challenge!";
-  const text = `🧳 Carry-On Tetris 📅 Daily (${key})\n${stars} — ${details}`;
+  const text = `🧳 Gate Games 📅 Daily (${key})\n${stars} — ${details}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).then(() => toast("📋 Daily scorecard copied!"));
   } else {

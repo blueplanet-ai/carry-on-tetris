@@ -1,6 +1,6 @@
 {
-  "name": "Carry-On Tetris — Gate Edition",
-  "short_name": "Carry-On",
+  "name": "Gate Games",
+  "short_name": "Gate Games",
   "description": "A cozy, one-thumb airport gate game suite.",
   "start_url": "./",
   "scope": "./",

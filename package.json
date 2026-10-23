@@ -1,5 +1,5 @@
 {
-  "name": "carry-on-tetris",
+  "name": "gate-games",
   "version": "0.6.0",
   "private": true,
   "description": "A cozy, one-thumb airport gate game suite (zero runtime dependencies).",
