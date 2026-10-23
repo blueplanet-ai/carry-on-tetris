@@ -1,10 +1,9 @@
 # Project Handover: Carry-On Tetris (Gate Edition)
 
-**Date:** 2026-10-22  
-**Current Version:** v0.4  
+**Date:** 2026-10-23  
+**Current Version:** v0.4.1  
 **Status:** Playable, tested, zero-dependency client-side PWA  
-**Stack:** Vanilla HTML5, CSS3, ES6 JavaScript, Web Audio API, Web Haptics, Service Worker (Cache-first/Network-first)  
-**Location:** `/Users/chuhee/Documents/Antigravity/carry-on-tetris`
+**Stack:** Vanilla HTML5, CSS3, ES6 JavaScript, Web Audio API, Web Haptics, Service Worker (network-first, offline fallback)  
 
 ---
 
@@ -20,13 +19,13 @@ In v0.3 & v0.4, the suite was upgraded from a 2-mode prototype (v0.2) to a compl
 
 | File | Purpose |
 |---|---|
-| [`index.html`](file:///Users/chuhee/Documents/Antigravity/carry-on-tetris/index.html) | Main single-file application containing CSS styling, SVG assets, HTML layout, and all game engine logic. |
-| [`manifest.webmanifest`](file:///Users/chuhee/Documents/Antigravity/carry-on-tetris/manifest.webmanifest) | PWA Web App Manifest for mobile installation ("Add to Home Screen"). |
-| [`sw.js`](file:///Users/chuhee/Documents/Antigravity/carry-on-tetris/sw.js) | Offline Service Worker caching `index.html`, `manifest.webmanifest`, and `icon.svg`. |
-| [`icon.svg`](file:///Users/chuhee/Documents/Antigravity/carry-on-tetris/icon.svg) | High-res vector app icon (carry-on suitcase packed with tetromino blocks). |
-| [`SPEC.md`](file:///Users/chuhee/Documents/Antigravity/carry-on-tetris/SPEC.md) | Initial technical design document. |
-| [`antigravity_handover_spec.md`](file:///Users/chuhee/Documents/Antigravity/carry-on-tetris/antigravity_handover_spec.md) | Previous v0.2 handover document. |
-| [`HANDOVER.md`](file:///Users/chuhee/Documents/Antigravity/carry-on-tetris/HANDOVER.md) | **(This file)** Complete status and continuation instructions for v0.3. |
+| [`index.html`](index.html) | Main single-file application containing CSS styling, SVG assets, HTML layout, and all game engine logic. |
+| [`manifest.webmanifest`](manifest.webmanifest) | PWA Web App Manifest for mobile installation ("Add to Home Screen"). |
+| [`sw.js`](sw.js) | Offline Service Worker caching `index.html`, `manifest.webmanifest`, and `icon.svg`. |
+| [`icon.svg`](icon.svg) | High-res vector app icon (carry-on suitcase packed with tetromino blocks). |
+| [`docs/archive/SPEC.md`](docs/archive/SPEC.md) | Initial technical design document (v0.2, archived). |
+| [`docs/archive/antigravity_handover_spec.md`](docs/archive/antigravity_handover_spec.md) | Previous v0.2 handover document (archived). |
+| [`HANDOVER.md`](HANDOVER.md) | **(This file)** Complete status and continuation instructions for v0.4.1. |
 
 *Note: The redundant clone `carry_on_tetris.html` was removed from git.*
 
@@ -75,6 +74,16 @@ In v0.3 & v0.4, the suite was upgraded from a 2-mode prototype (v0.2) to a compl
    - Packing a destination bag unlocks a connected onward itinerary banner (`#itineraryBar`).
    - Players transition from **1. Pack** (`🛫 Connect at <DEST> ➔`) to **2. Route** (Trivia leg departing that destination) and then **3. Board** (`🚶 Board <ORIGIN> ✈ <DEST>` in Boarding Group Shuffle), earning a **+300 MI Itinerary Completion Bonus** and a `🎫` badge on the level chip.
 
+### 🔧 What Was Fixed in v0.4.1
+1. **Unpackable custom bags:** layouts that can't be split into pieces (e.g. a free cell walled in by blocked cells) are rejected in the builder, and a bad shared link falls back to a regular bag instead of crashing the app. Shared links are capped at the builder's blocked-cell limit.
+2. **3 stars always reachable:** the generator keeps the most balanced solution and searches up to 400 attempts, so every daily and custom bag has a balanced 100%-full pack.
+3. **Boarding miles farm closed:** Boarding Group Shuffle pays miles only for the first line-up each day (`save.shuffleRewardDay`); the +300 MI itinerary bonus is unchanged.
+4. **Boarding par is real:** each line-up is scrambled with an 80-step walk and par is the BFS-shortest solution + 6 moves.
+5. **Keyboard:** Ctrl/Alt/⌘ shortcuts are left to the browser (Ctrl/⌘+Z still undoes). The suitcase grid is playable with arrow keys + Enter/Space, and item cards are reachable with Tab.
+6. **Smaller fixes:** daily score is saved under the bag's own date (no midnight mix-up); undo counts as a daily move and no longer replays the win fanfare; paid hints are remembered per item for the whole bag; the level strip no longer scrolls the page; touch devices see touch instructions from the start; the service worker only caches successful same-origin responses (`carry-on-v5`).
+7. **Honesty:** the Daily leaderboard is labelled as sample scores — the other travelers are generated, not real players.
+8. **Save versioning:** saves carry `version` and are upgraded through `migrateSave()`.
+
 ---
 
 ## 4. Save Data Schema (`localStorage`)
@@ -83,6 +92,7 @@ Key: `gate_suite_save_v3`
 
 ```json
 {
+  "version": 1,
   "miles": 1200,
   "lifetime": 1200,
   "muted": false,
@@ -103,7 +113,8 @@ Key: `gate_suite_save_v3`
   "triviaSolved": {
     "sfo-yvr": true
   },
-  "shuffleSolved": 1
+  "shuffleSolved": 1,
+  "shuffleRewardDay": "2026-10-22"
 }
 ```
 
@@ -113,7 +124,7 @@ Key: `gate_suite_save_v3`
 
 1. **Launch Local Server:**
    ```bash
-   # From /Users/chuhee/Documents/Antigravity/carry-on-tetris
+   # From the repository root
    npx serve .
    # or python3 -m http.server 8080
    ```

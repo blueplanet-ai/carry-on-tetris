@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="icon.svg" />
-  <title>Carry-On Tetris — Gate Edition (v0.4)</title>
+  <title>Carry-On Tetris — Gate Edition (v0.4.1)</title>
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -418,6 +418,8 @@
       border: 2px solid transparent;
     }
     .cell:active { transform: scale(0.95); }
+    .cell:focus { outline: none; }
+    .cell:focus-visible { outline: 3px solid #fde68a; outline-offset: -3px; z-index: 2; }
     .cell.top-row:not(.filled) { border-top: 2px dashed rgba(245, 158, 11, 0.35); }
 
     .cell.blocked {
@@ -568,6 +570,8 @@
       position: relative;
     }
     .item-card:hover { border-color: #475569; }
+    .item-card:focus { outline: none; }
+    .item-card:focus-visible { outline: 3px solid #fde68a; outline-offset: 2px; }
     .item-card.selected { border-color: var(--accent); background: rgba(245, 158, 11, 0.12); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); }
     .item-card.packed { opacity: 0.38; border-style: dashed; }
     .item-card.bonus-card { border-color: rgba(56, 189, 248, 0.65); }
@@ -1000,7 +1004,7 @@
       <div class="shuffle-board" id="shuffleBoard"></div>
       <div class="shuffle-stats">
         <span id="shuffleMovesText">MOVES: 0</span>
-        <span id="shuffleParText">PAR: 30 → +400 MI</span>
+        <span id="shuffleParText">PAR</span>
       </div>
     </div>
 
@@ -1029,7 +1033,7 @@
       <button class="icon-btn" id="btnCloseBuilder" onclick="closeBuilder()" aria-label="Close builder">✕</button>
     </div>
 
-    <div class="section-label">📅 Daily Flight Leaderboard (<span id="lbDateLabel">Today</span>)</div>
+    <div class="section-label">📅 Daily Bag: You vs. Sample Gate Scores (<span id="lbDateLabel">Today</span>)</div>
     <div class="leaderboard-card" id="dailyLeaderboard"></div>
     <div style="display:flex; gap:6px;">
       <button class="btn btn-xs btn-accent-outline" onclick="shareDailyResult()">📋 Copy Daily Score Card</button>
@@ -1157,10 +1161,12 @@
      SAVE DATA (localStorage)
      ========================================================= */
   const SAVE_KEY = "gate_suite_save_v3";
+  const SAVE_VERSION = 1; // bump and add a step to migrateSave() whenever the save shape changes
 
   function defaultSave() {
     const legacyMiles = Number(localStorage.getItem("gate_suite_miles") || 1200);
     return {
+      version: SAVE_VERSION,
       miles: legacyMiles,
       lifetime: legacyMiles,
       muted: false,
@@ -1177,10 +1183,24 @@
     };
   }
 
+  // Upgrade older saves one version at a time; new fields are filled from defaultSave()
+  function migrateSave(raw) {
+    const s = { ...defaultSave(), ...raw };
+    if (!raw.version) {
+      // v0 (v0.3–v0.4 saves had no version): make sure the keyed maps exist
+      ["bagStars", "dailyStats", "itineraries", "triviaSolved"].forEach(k => {
+        if (!s[k] || typeof s[k] !== "object") s[k] = {};
+      });
+      if (!Array.isArray(s.ownedSkins)) s.ownedSkins = ["classic"];
+    }
+    s.version = SAVE_VERSION;
+    return s;
+  }
+
   function loadSave() {
     try {
       const raw = JSON.parse(localStorage.getItem(SAVE_KEY));
-      if (raw) return { ...defaultSave(), ...raw };
+      if (raw && typeof raw === "object") return migrateSave(raw);
     } catch (e) { /* corrupted save, start fresh */ }
     return defaultSave();
   }
@@ -1522,8 +1542,8 @@
     const [route, dest, theme] = DAILY_ROUTES[Math.floor(rng() * DAILY_ROUTES.length)];
     const layout = DAILY_LAYOUTS[Math.floor(rng() * DAILY_LAYOUTS.length)];
     return {
-      id: "daily-" + key, route, dest, theme, seed: seed % 100000,
-      subtitle: `📅 Daily Bag • ${key} • Same for everyone`,
+      id: "daily-" + key, dateKey: key, route, dest, theme, seed: seed % 100000,
+      subtitle: `📅 Daily Bag • ${key} • Same bag for everyone on this date`,
       ...layout,
       rules: { top: 2, bottomHeavy: 1, heavy: 1, fragile: 2 },
       isDaily: true
@@ -1764,16 +1784,18 @@
   let curveballDeclined = false;
   let levelWon = false;
   let undoStack = [];
-  let hintItemId = null;
+  let hintedIds = new Set(); // items whose hint was already paid for on this bag
   let lastPlacedId = null;
   let packMoves = 0;
 
   // Input state (touch: tap-to-preview, tap-again-to-place)
-  let lastPointerType = "mouse";
+  let lastPointerType = window.matchMedia && matchMedia("(pointer: coarse)").matches ? "touch" : "mouse";
   let pendingTap = null;
   let touchMoved = false;
   let touchStartKey = null;
   let lastHover = null;
+  let kbCursor = { r: 0, c: 0 }; // keyboard cursor on the suitcase grid (roving tabindex)
+  const isTouchInput = () => lastPointerType === "touch" || lastPointerType === "pen";
 
   const getItem = (id) => itemsState.find(i => i.id === id);
   const cloneItem = (it) => ({ ...it, shape: it.shape.map(r => [...r]), solCells: it.solCells.map(c => [...c]), packed: false });
@@ -1803,7 +1825,7 @@
     curveballDeclined = false;
     levelWon = false;
     undoStack = [];
-    hintItemId = null;
+    hintedIds = new Set();
     lastPlacedId = null;
     packMoves = 0;
 
@@ -1843,13 +1865,14 @@
     curveballAccepted = s.curveballAccepted;
     curveballDeclined = s.curveballDeclined;
     levelWon = false;
+    packMoves++; // undos count toward the daily move score
     $("winBanner").classList.remove("show");
     $("suitcaseBody").classList.remove("zipped");
     updateCurveballBanner();
     setStatus("↩️ Undid last move.", "normal");
     fx.tap();
     renderAll();
-    checkWin();
+    checkWin(true); // re-show the win banner if the bag is still complete, without replaying the fanfare
   }
 
   function unpackFromGrid(id) {
@@ -2108,7 +2131,7 @@
     const check = validatePlacement(item, br, bc);
 
     // Touch: first tap previews, second tap on the same cell confirms
-    if (lastPointerType !== "mouse" && !(pendingTap && pendingTap.r === r && pendingTap.c === c)) {
+    if (isTouchInput() && !(pendingTap && pendingTap.r === r && pendingTap.c === c)) {
       showGhostPreview(r, c);
       pendingTap = { r, c };
       if (check.valid) setStatus(`👆 Tap the same spot again to place ${item.emoji} ${item.name}.`, "normal");
@@ -2134,7 +2157,6 @@
     item.packed = true;
     packMoves++;
     lastPlacedId = item.id;
-    if (hintItemId === item.id) hintItemId = null;
     fx.place();
 
     checkCurveballTrigger();
@@ -2165,7 +2187,12 @@
       showGhostPreview(lastHover.r, lastHover.c);
     });
 
-    gridEl.addEventListener("mouseleave", () => { lastHover = null; clearGhostPreview(); });
+    // pointerleave also fires when a finger lifts, which would wipe the touch preview — only clear for a real mouse
+    gridEl.addEventListener("pointerleave", (e) => {
+      if (e.pointerType !== "mouse") return;
+      lastHover = null;
+      clearGhostPreview();
+    });
 
     gridEl.addEventListener("touchstart", (e) => {
       touchMoved = false;
@@ -2191,12 +2218,51 @@
       }
     }, { passive: false });
 
+    // Keyboard: arrows move the cursor (with a ghost preview), Enter/Space places or unpacks
+    const KEY_STEPS = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+    gridEl.addEventListener("keydown", (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (KEY_STEPS[e.key]) {
+        e.preventDefault();
+        lastPointerType = "keyboard";
+        const [dr, dc] = KEY_STEPS[e.key];
+        moveKbCursor(kbCursor.r + dr, kbCursor.c + dc);
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        lastPointerType = "keyboard";
+        handleCellClick(kbCursor.r, kbCursor.c);
+      }
+    });
+
+    gridEl.addEventListener("focusin", (e) => {
+      const cell = cellAt(e.target);
+      if (!cell) return;
+      kbCursor = { r: +cell.dataset.r, c: +cell.dataset.c };
+      if (cell.matches(":focus-visible")) showGhostPreview(kbCursor.r, kbCursor.c);
+    });
+
     gridEl.addEventListener("click", (e) => {
       const cell = cellAt(e.target);
       if (!cell) return;
-      if (lastPointerType !== "mouse" && touchMoved) { touchMoved = false; return; }
+      if (isTouchInput() && touchMoved) { touchMoved = false; return; }
       handleCellClick(+cell.dataset.r, +cell.dataset.c);
     });
+  }
+
+  function cellEl(r, c) {
+    return document.querySelector(`#suitcaseGrid .cell[data-r="${r}"][data-c="${c}"]`);
+  }
+
+  function moveKbCursor(r, c) {
+    r = Math.max(0, Math.min(levelCfg.rows - 1, r));
+    c = Math.max(0, Math.min(levelCfg.cols - 1, c));
+    const prev = cellEl(kbCursor.r, kbCursor.c);
+    if (prev) prev.tabIndex = -1;
+    kbCursor = { r, c };
+    const el = cellEl(r, c);
+    el.tabIndex = 0;
+    el.focus();
+    showGhostPreview(r, c);
   }
 
   function selectItem(id) {
@@ -2219,13 +2285,13 @@
       fx.error();
       return;
     }
-    if (hintItemId !== item.id) {
+    if (!hintedIds.has(item.id)) {
       if (!spendMiles(HINT_COST)) {
         setStatus(`You need ${HINT_COST} MI for a hint. Earn more in Trivia or Boarding!`, "error");
         fx.error();
         return;
       }
-      hintItemId = item.id;
+      hintedIds.add(item.id);
       fx.coin();
     }
     const blocked = item.solCells.some(([r, c]) => gridState[r][c] !== null);
@@ -2300,7 +2366,7 @@
     save.bagStars[key] = prev | mask;
 
     if (levelCfg.isDaily) {
-      const dKey = todayKey();
+      const dKey = levelCfg.dateKey;
       const prevStat = save.dailyStats[dKey];
       const starsCount = popcount(mask);
       const balScore = Math.round(100 - bal.abs);
@@ -2393,13 +2459,15 @@
     }
 
     const active = strip.querySelector(".active");
-    if (active) active.scrollIntoView({ block: "nearest", inline: "center" });
+    if (active) strip.scrollTo({ left: active.offsetLeft - (strip.clientWidth - active.offsetWidth) / 2, behavior: "smooth" });
   }
 
   function renderAll() {
     const { rows, cols } = levelCfg;
     const gridEl = $("suitcaseGrid");
     pendingTap = null;
+    const gridHadFocus = gridEl.contains(document.activeElement);
+    kbCursor = { r: Math.min(kbCursor.r, rows - 1), c: Math.min(kbCursor.c, cols - 1) };
     gridEl.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
     gridEl.style.aspectRatio = `${cols} / ${rows}`;
     gridEl.innerHTML = "";
@@ -2421,7 +2489,7 @@
       anchors.add(best[0] + "," + best[1]);
     });
 
-    const hintItem = hintItemId ? getItem(hintItemId) : null;
+    const hintItem = hintedIds.has(selectedItemId) ? getItem(selectedItemId) : null;
     const hintSet = new Set(hintItem && !hintItem.packed ? hintItem.solCells.map(([r, c]) => r + "," + c) : []);
     const same = (r, c, v) => r >= 0 && r < rows && c >= 0 && c < cols && gridState[r][c] === v;
 
@@ -2432,6 +2500,7 @@
         cell.dataset.r = r;
         cell.dataset.c = c;
         cell.setAttribute("role", "gridcell");
+        cell.tabIndex = r === kbCursor.r && c === kbCursor.c ? 0 : -1;
         if (r === 0) cell.classList.add("top-row");
 
         const v = gridState[r][c];
@@ -2470,6 +2539,10 @@
       }
     }
     lastPlacedId = null;
+    if (gridHadFocus) {
+      cellEl(kbCursor.r, kbCursor.c).focus({ preventScroll: true });
+      if (lastPointerType === "keyboard") showGhostPreview(kbCursor.r, kbCursor.c);
+    }
 
     renderBalance();
     renderTray();
@@ -2478,12 +2551,13 @@
     $("btnUndo").disabled = undoStack.length === 0;
     $("btnRotate").disabled = !sel || sel.packed;
     $("btnHint").disabled = !sel || sel.packed;
-    $("btnHint").textContent = sel && hintItemId === sel.id ? "💡 Shown" : `💡 ${HINT_COST}`;
-    $("trayHint").textContent = lastPointerType === "mouse" ? "Tap packed item in bag to remove" : "Tap to preview • tap again to place";
+    $("btnHint").textContent = sel && hintedIds.has(sel.id) ? "💡 Shown" : `💡 ${HINT_COST}`;
+    $("trayHint").textContent = isTouchInput() ? "Tap to preview • tap again to place" : "Tap packed item in bag to remove";
   }
 
   function renderTray() {
     const trayEl = $("itemTray");
+    const focusedId = trayEl.contains(document.activeElement) ? document.activeElement.id : null;
     trayEl.innerHTML = "";
     const packedCount = itemsState.filter(i => i.packed).length;
     $("packedCount").textContent = `${packedCount}/${itemsState.length}`;
@@ -2493,6 +2567,7 @@
       card.className = "item-card";
       card.id = `itemCard-${item.id}`;
       card.setAttribute("role", "button");
+      card.tabIndex = 0;
       card.setAttribute("aria-label", `${item.name}, ${item.ruleLabel}${item.packed ? ", packed" : ""}`);
       if (item.id === selectedItemId) card.classList.add("selected");
       if (item.packed) card.classList.add("packed");
@@ -2530,8 +2605,12 @@
       }
 
       card.addEventListener("click", () => selectItem(item.id));
+      card.addEventListener("keydown", (e) => {
+        if (e.target === card && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); selectItem(item.id); }
+      });
       trayEl.appendChild(card);
     });
+    if (focusedId && $(focusedId)) $(focusedId).focus({ preventScroll: true });
   }
 
   /* =========================================================
@@ -2851,7 +2930,8 @@
      MODE 3: BOARDING GROUP SHUFFLE (8-PUZZLE)
      ========================================================= */
   const SHUFFLE_N = 3;
-  const SHUFFLE_PAR = 30;
+  const SHUFFLE_SCRAMBLE = 80;   // random-walk length used to scramble the line
+  const SHUFFLE_PAR_SLACK = 6;   // par = shortest possible solution + this many moves
   const PAX = [
     null,
     { e: "♿", c: "#38bdf8", l: "Pre-board" },
@@ -2865,6 +2945,7 @@
   ];
 
   let shuffleTiles = [];
+  let shufflePar = 0;
   let shuffleMoves = 0;
   let shuffleDone = false;
 
@@ -2880,6 +2961,36 @@
     return res;
   }
 
+  // Fewest single-passenger moves to solve, via IDA* with a Manhattan-distance heuristic (exact and fast)
+  function shuffleShortest(start) {
+    const N = SHUFFLE_N;
+    const t = [...start];
+    const dist = (idx, v) => Math.abs(Math.floor(idx / N) - Math.floor((v - 1) / N)) + Math.abs((idx % N) - ((v - 1) % N));
+    let empty = t.indexOf(0);
+    let found = -1;
+
+    const search = (g, bound, prev, h) => {
+      if (g + h > bound) return g + h;
+      if (h === 0) { found = g; return -1; }
+      let min = Infinity;
+      for (const nb of shuffleNeighbors(empty)) {
+        if (nb === prev) continue;
+        const v = t[nb], from = empty;
+        const nh = h - dist(nb, v) + dist(from, v);
+        t[from] = v; t[nb] = 0; empty = nb;
+        const res = search(g + 1, bound, from, nh);
+        t[nb] = v; t[from] = 0; empty = from;
+        if (res === -1) return -1;
+        if (res < min) min = res;
+      }
+      return min;
+    };
+
+    const h0 = t.reduce((sum, v, i) => sum + (v ? dist(i, v) : 0), 0);
+    for (let bound = h0; found < 0;) bound = search(0, bound, -1, h0);
+    return found;
+  }
+
   function setShuffleStatus(msg, type) {
     const banner = $("shuffleStatusBanner");
     banner.className = "rule-banner" + (type ? ` ${type}` : "");
@@ -2892,7 +3003,7 @@
     let empty = n - 1, prev = -1;
     do {
       // Random walk from solved = always solvable
-      for (let k = 0; k < SHUFFLE_PAR; k++) {
+      for (let k = 0; k < SHUFFLE_SCRAMBLE; k++) {
         const nb = shuffleNeighbors(empty).filter(i => i !== prev);
         const pick = nb[Math.floor(Math.random() * nb.length)];
         [t[empty], t[pick]] = [t[pick], t[empty]];
@@ -2902,6 +3013,7 @@
     } while (shuffleSolvedState(t));
 
     shuffleTiles = t;
+    shufflePar = shuffleShortest(t) + SHUFFLE_PAR_SLACK;
     shuffleMoves = 0;
     shuffleDone = false;
     $("shuffleWinBanner").classList.remove("show");
@@ -2937,8 +3049,8 @@
     });
     $("shuffleMovesText").textContent = `MOVES: ${shuffleMoves}`;
     $("shuffleParText").textContent = !shuffleRewardAvailable()
-      ? `PAR: ${SHUFFLE_PAR} • PRACTICE`
-      : shuffleMoves <= SHUFFLE_PAR ? `PAR: ${SHUFFLE_PAR} → +400 MI` : `OVER PAR → +200 MI`;
+      ? `PAR: ${shufflePar} • PRACTICE`
+      : shuffleMoves <= shufflePar ? `PAR: ${shufflePar} → +400 MI` : `OVER PAR → +200 MI`;
   }
 
   const shuffleRewardAvailable = () => save.shuffleRewardDay !== todayKey();
@@ -2970,7 +3082,7 @@
     if (shuffleSolvedState(shuffleTiles)) {
       shuffleDone = true;
       const dailyPaid = shuffleRewardAvailable();
-      let earned = !dailyPaid ? 0 : shuffleMoves <= SHUFFLE_PAR ? 400 : 200;
+      let earned = !dailyPaid ? 0 : shuffleMoves <= shufflePar ? 400 : 200;
       if (dailyPaid) save.shuffleRewardDay = todayKey();
       let itinBonus = 0;
       const nextBagBtn = $("btnNextItineraryBag");
@@ -2998,7 +3110,7 @@
         ? `✅ All groups lined up in ${shuffleMoves} moves! +${earned} Miles${itinBonus ? " (incl. +300 MI Itinerary Bonus!)" : ""}.${practiceNote}`
         : `✅ All groups lined up in ${shuffleMoves} moves!${practiceNote}`, "success");
       $("shuffleWinTitle").textContent = earned ? `✅ Boarding Complete! (+${earned} MI)` : "✅ Boarding Complete!";
-      $("shuffleWinSub").textContent = shuffleMoves <= SHUFFLE_PAR ? `Under par (${SHUFFLE_PAR}) — on-time departure!` : `${shuffleMoves} moves — a little delayed, but boarded.`;
+      $("shuffleWinSub").textContent = shuffleMoves <= shufflePar ? `Under par (${shufflePar}) — on-time departure!` : `${shuffleMoves} moves — a little delayed, but boarded.`;
       $("shuffleWinBanner").classList.add("show");
     } else {
       setShuffleStatus(`🚶 Keep going — ${shuffleTiles.filter((t, i) => t === i + 1).length}/8 passengers in place.`);
@@ -3226,7 +3338,7 @@
         <span>#${idx + 1} ${e.name}</span>
         <span>${"★".repeat(e.stars)}${"☆".repeat(3 - e.stars)} • ${e.moves}m • ⚖️${e.balancePct}%</span>
       </div>
-    `).join("") + (!myStat ? `<div style="font-size:0.66rem; color:var(--text-muted); text-align:center; padding-top:2px;">Pack today's 📅 Daily Bag to post your score!</div>` : "");
+    `).join("") + `<div style="font-size:0.62rem; color:var(--text-muted); text-align:center; padding-top:2px;">Other travelers are sample scores for practice — not real players.</div>` + (!myStat ? `<div style="font-size:0.66rem; color:var(--text-muted); text-align:center; padding-top:2px;">Pack today's 📅 Daily Bag to post your score!</div>` : "");
   }
 
   function shareDailyResult() {
