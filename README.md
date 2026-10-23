@@ -37,7 +37,9 @@ CI runs all of these on every pull request (`.github/workflows/ci.yml`).
 | `js/custom-bag.js` | Custom bag configs and share-link parsing. **Pure.** |
 | `js/progress.js` | Which bags and trivia flights are open, skipping, perfect bags. **Pure.** |
 | `js/save.js` | Save data in `localStorage`, with versioned migrations. |
-| `js/economy.js`, `audio.js`, `shell.js`, `builder.js`, `state.js`, `util.js` | Miles and shop, sound, header and mode tabs, the 🛠️ window, shared state, helpers. |
+| `js/economy.js`, `audio.js`, `shell.js`, `builder.js`, `state.js`, `util.js` | Miles and shop, sound, boarding-pass header and mode tabs, the builder window, shared state, helpers. |
+| `js/art.js`, `js/theme.js` | Drawings of items and passengers (in place of emoji); the light / dark toggle. |
+| `js/data/airports.js` | City names shown above the codes on the boarding pass. |
 | `js/data/trivia-rounds.js` | Trivia flights and clues. |
 | `sw.js` | Offline service worker. **Add new files to its `ASSETS` list** (a unit test checks this). |
 | `tests/unit/`, `tests/e2e/` | Unit and end-to-end tests. |

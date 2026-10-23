@@ -43,5 +43,6 @@ export function toggleSound() {
 }
 
 export function updateSoundIcon() {
-  $("btnSound").textContent = save.muted ? "🔇" : "🔊";
+  $("btnSound").innerHTML = `<svg class="ico" aria-hidden="true"><use href="#i-${save.muted ? "mute" : "sound"}"/></svg>`;
+  $("btnSound").setAttribute("aria-pressed", String(!save.muted));
 }

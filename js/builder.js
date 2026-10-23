@@ -1,4 +1,4 @@
-// The 🛠️ window: daily leaderboard and score card, plus the custom bag builder and share links.
+// The builder window: daily leaderboard and score card, plus the custom bag builder and share links.
 import { $, toast, todayKey, mulberry32, hashStr } from "./util.js";
 import { save } from "./save.js";
 import { fx } from "./audio.js";
@@ -20,14 +20,14 @@ export function loadSharedBagFromHash({ announce = true } = {}) {
   if (!isPackable(parsed)) {
     clearCustomHash();
     // At boot the caller falls back to a regular bag; on a later hash change the current bag stays
-    if (announce) toast("🚫 That shared bag can't be packed.");
-    else setTimeout(() => toast("🚫 That shared bag can't be packed — starting a regular bag."), 300);
+    if (announce) toast("That shared bag can't be packed.");
+    else setTimeout(() => toast("That shared bag can't be packed — starting a regular bag."), 300);
     return false;
   }
   app.customBagCfg = parsed;
   switchMode("tetris");
   loadLevel("custom");
-  if (announce) toast(`🧳 Loaded shared bag: ${parsed.route}`);
+  if (announce) toast(`Loaded shared bag: ${parsed.route}`);
   return true;
 }
 
@@ -105,7 +105,7 @@ function buildCustomConfigFromInputs() {
 }
 
 function rejectUnpackable() {
-  toast("🚫 That layout can't be packed — unblock a few cells.");
+  toast("That layout can't be packed — unblock a few cells.");
   fx.error();
 }
 
@@ -117,7 +117,7 @@ export function playCustomBagFromModal() {
   closeBuilder();
   switchMode("tetris");
   loadLevel("custom");
-  toast(`🧳 Loaded custom bag: ${cfg.route}`);
+  toast(`Loaded custom bag: ${cfg.route}`);
 }
 
 export function shareCustomBagUrl() {
@@ -128,9 +128,9 @@ export function shareCustomBagUrl() {
   try { history.replaceState(null, "", hash); } catch (e) { /* ignore */ }
   const url = location.origin + location.pathname + hash;
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => toast("🔗 Custom bag URL copied to clipboard!"));
+    navigator.clipboard.writeText(url).then(() => toast("Custom bag URL copied to clipboard!"));
   } else {
-    toast(`🔗 URL ready in address bar!`);
+    toast("URL ready in the address bar!");
   }
   fx.coin();
 }
@@ -151,7 +151,7 @@ function renderDailyLeaderboard() {
   const myStat = save.dailyStats && save.dailyStats[key];
   if (myStat) {
     entries.push({
-      name: "✈️ You (Gate Traveler)",
+      name: "You (gate traveler)",
       stars: myStat.stars,
       moves: myStat.moves,
       balancePct: myStat.balancePct,
@@ -164,9 +164,9 @@ function renderDailyLeaderboard() {
   el.innerHTML = entries.map((e, idx) => `
     <div class="lb-row${e.isMe ? " me" : ""}">
       <span>#${idx + 1} ${e.name}</span>
-      <span>${"★".repeat(e.stars)}${"☆".repeat(3 - e.stars)} • ${e.moves}m • ⚖️${e.balancePct}%</span>
+      <span>${"★".repeat(e.stars)}${"☆".repeat(3 - e.stars)} · ${e.moves}m · ${e.balancePct}% bal</span>
     </div>
-  `).join("") + `<div style="font-size:0.62rem; color:var(--text-muted); text-align:center; padding-top:2px;">Other travelers are sample scores for practice — not real players.</div>` + (!myStat ? `<div style="font-size:0.66rem; color:var(--text-muted); text-align:center; padding-top:2px;">Pack today's 📅 Daily Bag to post your score!</div>` : "");
+  `).join("") + `<div class="modal-note">Other travelers are sample scores for practice — not real players.</div>` + (!myStat ? `<div class="modal-note">Pack today's daily bag to post your score!</div>` : "");
 }
 
 export function shareDailyResult() {
@@ -176,7 +176,7 @@ export function shareDailyResult() {
   const details = st ? `${st.moves} moves • ${st.balancePct}% balance` : "Try today's gate challenge!";
   const text = `🧳 Gate Games 📅 Daily (${key})\n${stars} — ${details}`;
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => toast("📋 Daily scorecard copied!"));
+    navigator.clipboard.writeText(text).then(() => toast("Daily scorecard copied!"));
   } else {
     toast(text);
   }

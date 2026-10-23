@@ -3,6 +3,7 @@ import { $ } from "./util.js";
 import { save } from "./save.js";
 import { toggleSound, updateSoundIcon } from "./audio.js";
 import { applySkin, updateMilesDisplay, openShop, closeShop } from "./economy.js";
+import { applyTheme, toggleTheme } from "./theme.js";
 import { app } from "./state.js";
 import { switchMode } from "./shell.js";
 import { LEVELS } from "./generator.js";
@@ -24,6 +25,7 @@ const ACTIONS = {
   openShop,
   closeShop,
   toggleSound,
+  toggleTheme,
   acceptCurveball: pack.acceptCurveball,
   declineCurveball: pack.declineCurveball,
   nextBag: pack.nextLevel,
@@ -75,6 +77,7 @@ document.addEventListener("keydown", (e) => {
 window.addEventListener("hashchange", () => builder.loadSharedBagFromHash());
 
 /* Boot */
+applyTheme();
 applySkin();
 updateMilesDisplay();
 updateSoundIcon();

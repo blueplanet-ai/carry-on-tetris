@@ -9,6 +9,7 @@ import { TRIVIA_ROUNDS } from "../data/trivia-rounds.js";
 import { LEVELS } from "../generator.js";
 import { isRoundUnlocked } from "../progress.js";
 import { newShuffle } from "./boarding.js";
+import { shortCity } from "../data/airports.js";
 
 const TRIVIA_START_POT = 500;
 const WRONG_PENALTY = 150;
@@ -30,10 +31,14 @@ export function triviaHeader() {
   const round = TRIVIA_ROUNDS[currentTriviaIdx];
   const solved = Object.keys(save.triviaSolved).length;
   const open = TRIVIA_ROUNDS.filter((r, i) => unlocked(i)).length;
+  const answer = round.options.find(([code]) => code === round.answer);
   return {
     title: `${round.origin} ✈ ${triviaRoundOver ? round.answer : "???"}`,
-    subtitle: `Where Are We Flying? • Routed ${solved}/${TRIVIA_ROUNDS.length}` + (open < TRIVIA_ROUNDS.length ? ` • ${TRIVIA_ROUNDS.length - open} locked` : ""),
-    badge: `Flight ${currentTriviaIdx + 1}/${TRIVIA_ROUNDS.length}`
+    toCity: triviaRoundOver && answer ? shortCity(answer[1]) : "Destination",
+    subtitle: `Routed ${solved}/${TRIVIA_ROUNDS.length}`,
+    detail: `${round.dur}` + (open < TRIVIA_ROUNDS.length ? ` · ${TRIVIA_ROUNDS.length - open} locked` : ""),
+    badgeLabel: "Flight",
+    badge: `${currentTriviaIdx + 1}/${TRIVIA_ROUNDS.length}`
   };
 }
 
@@ -67,11 +72,21 @@ function drawRadar(round) {
   const originText = $("radarOriginText");
   originText.setAttribute("y", round.hdg > 90 && round.hdg < 270 ? 60 : 88);
 
-  $("radarPlaneLayer").innerHTML = `
+  // The plane flies the route on a loop; with reduced motion it rests halfway along it
+  const plane = `<path class="radar-plane" transform="translate(-12 -12)" d="M21 12.5c0-.8-.7-1.5-1.5-1.5H15L10.5 3H8.6l2.2 8H6.2L4.6 9H3l1 3.5L3 16h1.6l1.6-2h4.6l-2.2 8h1.9l4.5-8h4.5c.8 0 1.5-.7 1.5-1.5z" />`;
+  const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (still) {
+    // Midpoint of the quadratic curve; its direction there is parallel to origin → destination
+    const midX = 0.25 * ox + 0.5 * cx + 0.25 * dx, midY = 0.25 * oy + 0.5 * cy + 0.25 * dy;
+    const deg = (Math.atan2(dy - oy, dx - ox) * 180) / Math.PI;
+    $("radarPlaneLayer").innerHTML = `<g transform="translate(${midX.toFixed(1)} ${midY.toFixed(1)}) rotate(${deg.toFixed(1)}) scale(0.7)">${plane}</g>`;
+  } else {
+    $("radarPlaneLayer").innerHTML = `
     <g>
-      <path d="M -8 -4.5 L 9 0 L -8 4.5 L -4.5 0 Z" fill="#f8fafc" />
+      <g transform="scale(0.7)">${plane}</g>
       <animateMotion dur="3.4s" repeatCount="indefinite" rotate="auto"><mpath href="#radarRoute" /></animateMotion>
     </g>`;
+  }
 }
 
 function setTriviaStatus(msg, type) {
@@ -84,7 +99,7 @@ function updatePot() {
   $("telemetryPot").textContent = triviaPractice ? "PRACTICE • NO MILES" : `REWARD POOL: +${currentTriviaPot} MI`;
 }
 
-// One chip per flight: routed ✓, open, or 🔒 until its bag is packed
+// One chip per flight: routed ✓, open, or locked until its bag is packed
 export function renderFlightStrip() {
   const strip = $("flightStrip");
   strip.innerHTML = "";
@@ -94,10 +109,11 @@ export function renderFlightStrip() {
     const chip = document.createElement("button");
     chip.id = `flightChip-${round.id}`;
     chip.className = "level-chip" + (i === currentTriviaIdx ? " active" : "") + (open ? "" : " locked") + (solved ? " solved" : "");
-    chip.innerHTML = `<span>${open ? "" : "🔒 "}${round.origin}</span><span class="chip-stars">${solved ? `✓ ${round.answer}` : "???"}</span>`;
+    const lock = open ? "" : `<svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>`;
+    chip.innerHTML = `<span class="chip-code">${lock}${round.origin}</span><span class="chip-stars">${solved ? `✓ ${round.answer}` : "???"}</span>`;
     chip.title = open ? `${round.origin} ✈ ${solved ? round.answer : "???"}` : unlockHint(round);
     chip.onclick = () => {
-      if (!open) { setTriviaStatus(`🔒 ${unlockHint(round)}`, "error"); fx.error(); return; }
+      if (!open) { setTriviaStatus(unlockHint(round), "error"); fx.error(); return; }
       fx.tap();
       loadTriviaRound(i);
     };
@@ -124,21 +140,20 @@ export function loadTriviaRound(idx) {
   drawRadar(round);
   $("radarOriginText").textContent = round.origin;
   $("radarDestText").textContent = "???";
-  $("telemetryHeading").textContent = `HDG ${String(round.hdg).padStart(3, "0")}° ${compass(round.hdg)} • ${round.dur}`;
+  $("telemetryHeading").textContent = `HDG ${String(round.hdg).padStart(3, "0")}° ${compass(round.hdg)} · ${round.dur}`;
   updatePot();
   $("clue1Text").textContent = round.clue1;
 
   [2, 3].forEach(n => {
     $(`clue${n}Box`).classList.remove("revealed");
     const t = $(`clue${n}Text`);
-    t.textContent = n === 2 ? "Locked — Reveal passenger gear & local weather" : "Locked — Reveal destination signature clue";
-    t.style.color = "var(--text-muted)";
+    t.textContent = n === 2 ? "Sealed — passenger gear & local weather" : "Sealed — the destination's signature";
     $(`btnClue${n}`).style.display = "inline-flex";
   });
 
   setTriviaStatus(triviaPractice
-    ? "🔁 Already routed — practice round (no miles). Where are we flying?"
-    : "🌍 Where are we flying? Select the destination airport:");
+    ? "Already routed — practice round (no miles). Where are we flying?"
+    : "Where are we flying? Pick the tag for this bag.");
   $("btnFifty").style.display = "inline-flex";
   $("btnFifty").disabled = false;
   $("triviaWinBanner").classList.remove("show");
@@ -155,7 +170,7 @@ export function loadTriviaRound(idx) {
     btn.className = "dest-btn";
     btn.id = `dest-${iata}`;
     btn.dataset.iata = iata;
-    btn.innerHTML = `<span class="dest-iata">🛫 ${iata}</span><span class="dest-city">${city}</span>`;
+    btn.innerHTML = `<span class="tag-hole" aria-hidden="true"></span><span class="dest-iata">${iata}</span><span class="dest-city">${city}</span>`;
     btn.addEventListener("click", () => handleTriviaGuess(iata, city, btn));
     grid.appendChild(btn);
   });
@@ -169,7 +184,6 @@ export function unlockClue(num) {
   $(`clue${num}Box`).classList.add("revealed");
   const t = $(`clue${num}Text`);
   t.textContent = num === 2 ? round.clue2 : round.clue3;
-  t.style.color = "var(--text-main)";
   $(`btnClue${num}`).style.display = "none";
   updatePot();
   fx.tap();
@@ -191,7 +205,7 @@ export function fiftyFifty() {
   btn.disabled = true;
   btn.classList.add("eliminated");
   $("btnFifty").disabled = true;
-  setTriviaStatus(`✂️ Not ${btn.dataset.iata}! One fewer option.`);
+  setTriviaStatus(`Not ${btn.dataset.iata}! One fewer option.`);
   fx.coin();
 }
 
@@ -218,9 +232,9 @@ function handleTriviaGuess(iata, city, btnEl) {
     fx.win();
 
     setTriviaStatus(earned
-      ? `✅ Cleared for ${city} (${iata})! Earned +${earned} Miles.`
-      : triviaPractice ? `✅ ${city} (${iata}) — practice round complete.` : `✅ ${city} (${iata}) — pool was empty, fewer guesses next time!`, "success");
-    $("triviaWinTitle").textContent = earned ? `🎯 Routed to ${iata}! (+${earned} MI)` : `🎯 Routed to ${iata}!`;
+      ? `Cleared for ${city} (${iata})! Earned +${earned} miles.`
+      : triviaPractice ? `${city} (${iata}) — practice round complete.` : `${city} (${iata}) — pool was empty, fewer guesses next time!`, "success");
+    $("triviaWinTitle").textContent = earned ? `Routed to ${iata}! +${earned} MI` : `Routed to ${iata}!`;
     $("triviaWinSub").textContent = `${city} • Boarding pass verified.`;
 
     const boardBtn = $("btnBoardFlight");
@@ -229,7 +243,7 @@ function handleTriviaGuess(iata, city, btnEl) {
       app.itinerary.step = 3;
       syncBoardingHeader();
       boardBtn.style.display = "inline-flex";
-      boardBtn.textContent = `🚶 Board ${round.origin} ✈ ${round.answer}`;
+      boardBtn.textContent = `Board ${round.origin} ✈ ${round.answer}`;
     } else {
       boardBtn.style.display = "none";
     }
@@ -242,8 +256,8 @@ function handleTriviaGuess(iata, city, btnEl) {
     updatePot();
     fx.error();
     setTriviaStatus(triviaPractice
-      ? `❌ Not ${iata}! Check flight time & clues.`
-      : `❌ Not ${iata}! Check flight time & clues (−${WRONG_PENALTY} pool).`, "error");
+      ? `Not ${iata}! Check flight time & clues.`
+      : `Not ${iata}! Check flight time & clues (−${WRONG_PENALTY} pool).`, "error");
   }
 }
 
@@ -252,7 +266,7 @@ export function nextTriviaRound() {
   const n = TRIVIA_ROUNDS.length;
   const order = Array.from({ length: n }, (_, k) => (currentTriviaIdx + 1 + k) % n).filter(unlocked);
   const fresh = order.find(idx => !save.triviaSolved[TRIVIA_ROUNDS[idx].id]);
-  if (fresh === undefined && order.length < n) toast("🔒 Pack more bags to unlock new flights!");
+  if (fresh === undefined && order.length < n) toast("Pack more bags to unlock new flights!");
   loadTriviaRound(fresh ?? order[0]);
 }
 
@@ -260,6 +274,6 @@ export function continueToBoarding() {
   switchMode("shuffle");
   newShuffle();
   if (app.itinerary) {
-    toast(`🚶 Boarding ${app.itinerary.dest} ✈ ${app.itinerary.nextDest} — line up the boarding groups!`);
+    toast(`Boarding ${app.itinerary.dest} ✈ ${app.itinerary.nextDest} — line up the boarding groups!`);
   }
 }

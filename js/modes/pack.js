@@ -5,9 +5,10 @@ import { fx } from "../audio.js";
 import { addMiles, spendMiles } from "../economy.js";
 import { app } from "../state.js";
 import { syncBoardingHeader, switchMode } from "../shell.js";
-import { RULE_META, LEVELS, dailyConfig, generateBag } from "../generator.js";
+import { LEVELS, dailyConfig, generateBag } from "../generator.js";
 import { computeBalance, placementBase, validatePlacement } from "../packing.js";
 import { TRIVIA_ROUNDS } from "../data/trivia-rounds.js";
+import { itemArt, ruleBadge } from "../art.js";
 import { loadTriviaRound, renderFlightStrip } from "./trivia.js";
 import { isLevelUnlocked as levelOpen, canSkipLevel, isPerfect, isRoundUnlocked, roundsUnlockedBy } from "../progress.js";
 
@@ -86,11 +87,11 @@ export function loadLevel(idx) {
   renderLevelStrip();
 
   const first = itemsState[0];
-  const intro = levelCfg.isDaily ? "📅 Daily Bag! " : levelCfg.isCustom ? "🛠️ Custom Bag! " : "";
+  const intro = levelCfg.isDaily ? "Daily bag! " : levelCfg.isCustom ? "Custom bag! " : "";
   if (isPerfect(save.bagStars[levelCfg.id] || 0)) {
-    setStatus(`🏆 You've already zipped this bag perfectly — replay it for fun (stars are banked). Selected ${first.emoji} ${first.name}.`, "success");
+    setStatus(`You've already zipped this bag perfectly — replay it for fun (stars are banked). Selected: ${first.name}.`, "success");
   } else {
-    setStatus(`${intro}Fill every slot for ⭐⭐⭐. Selected ${first.emoji} ${first.name}: ${first.desc}`, "normal");
+    setStatus(`${intro}Fill every slot for three stars. Selected: ${first.name} — ${first.desc}`, "normal");
   }
   renderAll();
 }
@@ -118,7 +119,7 @@ export function undo() {
   $("winBanner").classList.remove("show");
   $("suitcaseBody").classList.remove("zipped");
   updateCurveballBanner();
-  setStatus("↩️ Undid last move.", "normal");
+  setStatus("Undid last move.", "normal");
   fx.tap();
   renderAll();
   checkWin(true); // re-show the win banner if the bag is still complete, without replaying the fanfare
@@ -172,41 +173,46 @@ function countEmpty() {
 
 function renderBalance() {
   const bal = currentBalance();
-  const markerEl = $("balanceMarker");
   const statusEl = $("balanceStatusText");
   const bodyEl = $("suitcaseBody");
   const vertEl = $("balanceVertical");
+  const beamEl = $("scaleBeam");
 
+  // The scale's beam tips down toward the heavier wheel (shift < 0 is left-heavy)
+  const tilt = Math.max(-12, Math.min(12, bal.shift * 0.26));
+  beamEl.style.transform = `rotate(${tilt.toFixed(2)}deg)`;
   $("bagWeightText").textContent = `${bal.total.toFixed(1)} lbs`;
-  markerEl.style.left = `${50 + bal.shift}%`;
+  $("scaleLeftText").textContent = `L ${bal.left.toFixed(1)} lb`;
+  $("scaleRightText").textContent = `R ${bal.right.toFixed(1)} lb`;
+  $("scaleSummary").textContent = `Left wheel ${bal.left.toFixed(1)} lb, right wheel ${bal.right.toFixed(1)} lb`;
   statusEl.className = "balance-status";
+  beamEl.classList.remove("warn", "bad");
 
   if (bal.abs <= 20) {
     statusEl.classList.add("good");
-    statusEl.textContent = "Balanced ✅";
-    markerEl.style.backgroundColor = "var(--valid)";
+    statusEl.textContent = "Balanced";
     bodyEl.style.transform = "rotate(0deg)";
   } else if (bal.abs <= 34) {
     statusEl.classList.add("warn");
-    statusEl.textContent = bal.shift < 0 ? "Left-Heavy ⚠️" : "Right-Heavy ⚠️";
-    markerEl.style.backgroundColor = "var(--accent)";
+    beamEl.classList.add("warn");
+    statusEl.textContent = bal.shift < 0 ? "Left-heavy" : "Right-heavy";
     bodyEl.style.transform = `rotate(${(bal.shift * 0.04).toFixed(2)}deg)`;
   } else {
     statusEl.classList.add("bad");
-    statusEl.textContent = "Tipping Hazard! 🚨";
-    markerEl.style.backgroundColor = "var(--invalid)";
+    beamEl.classList.add("bad");
+    statusEl.textContent = "Tipping hazard!";
     bodyEl.style.transform = `rotate(${(bal.shift * 0.07).toFixed(2)}deg)`;
   }
 
   vertEl.className = "balance-vertical";
   if (!bal.heavyCount) {
-    vertEl.textContent = "⬇ No heavy items packed yet";
+    vertEl.textContent = "No heavy items packed yet";
   } else if (bal.topHeavy) {
     vertEl.classList.add("warn");
-    vertEl.textContent = "⬆ Top-heavy! Heavy items should ride low ⚠️";
+    vertEl.textContent = "Top-heavy! Heavy items should ride low";
   } else {
     vertEl.classList.add("good");
-    vertEl.textContent = "⬇ Heavy items riding low ✅";
+    vertEl.textContent = "Heavy items riding low";
   }
   return bal;
 }
@@ -242,9 +248,9 @@ function checkCurveballTrigger() {
   if (unpacked <= 1 && !curveballPrompted && !curveballAccepted && generated.bonus) {
     curveballPrompted = true;
     const cb = generated.bonus;
-    $("curveballEmoji").textContent = cb.emoji;
-    $("curveballTitle").textContent = `📢 Gate Agent Curveball: ${cb.name}!`;
-    $("curveballDesc").textContent = `Overhead bins are full! Squeeze in this ${cb.name} (${cb.emoji}) to zip the bag 100% full for +500 Bonus Miles?`;
+    $("curveballEmoji").innerHTML = itemArt(cb.name);
+    $("curveballTitle").textContent = `Gate agent curveball: ${cb.name}!`;
+    $("curveballDesc").textContent = `Overhead bins are full! Squeeze in this ${cb.name} to zip the bag 100% full for +500 bonus miles?`;
     updateCurveballBanner();
   }
 }
@@ -260,7 +266,7 @@ export function acceptCurveball() {
   $("winBanner").classList.remove("show");
   $("suitcaseBody").classList.remove("zipped");
   updateCurveballBanner();
-  setStatus(`Curveball accepted! Pack ${bonusItem.emoji} ${bonusItem.name} into the gaps — or "Leave at gate" if it won't fit.`, "normal");
+  setStatus(`Curveball accepted! Pack the ${bonusItem.name} into the gaps — or "Leave at gate" if it won't fit.`, "normal");
   fx.tap();
   renderAll();
 }
@@ -282,7 +288,7 @@ function leaveBonus() {
   curveballDeclined = true;
   const next = itemsState.find(i => !i.packed);
   selectedItemId = next ? next.id : null;
-  setStatus(`🚪 Left the ${bonus.name} at the gate.`, "normal");
+  setStatus(`Left the ${bonus.name} at the gate.`, "normal");
   fx.tap();
   renderAll();
   checkWin();
@@ -293,7 +299,7 @@ function handleCellClick(r, c) {
   const val = gridState[r][c];
 
   if (val === "BLOCKED") {
-    setStatus("🚫 That's the suitcase frame — nothing fits there.", "error");
+    setStatus("That's the suitcase frame — nothing fits there.", "error");
     fx.error();
     return;
   }
@@ -303,7 +309,7 @@ function handleCellClick(r, c) {
     const item = getItem(val);
     unpackFromGrid(val);
     selectedItemId = item.id;
-    setStatus(`Unpacked ${item.emoji} ${item.name}. Tap to place elsewhere.`, "normal");
+    setStatus(`Unpacked the ${item.name}. Tap to place it elsewhere.`, "normal");
     fx.tap();
     renderAll();
     return;
@@ -322,15 +328,15 @@ function handleCellClick(r, c) {
   if (isTouchInput() && !(pendingTap && pendingTap.r === r && pendingTap.c === c)) {
     showGhostPreview(r, c);
     pendingTap = { r, c };
-    if (check.valid) setStatus(`👆 Tap the same spot again to place ${item.emoji} ${item.name}.`, "normal");
-    else setStatus(`⚠️ ${check.reason}`, "error");
+    if (check.valid) setStatus(`Tap the same spot again to place the ${item.name}.`, "normal");
+    else setStatus(check.reason, "error");
     fx.tap();
     return;
   }
   pendingTap = null;
 
   if (!check.valid) {
-    setStatus(`⚠️ ${check.reason}`, "error");
+    setStatus(check.reason, "error");
     showGhostPreview(r, c);
     fx.error();
     const body = $("suitcaseBody");
@@ -352,7 +358,7 @@ function handleCellClick(r, c) {
   const next = itemsState.find(i => !i.packed);
   if (next) {
     selectedItemId = next.id;
-    setStatus(`✅ Packed! Next: ${next.emoji} ${next.name} — ${next.desc}`, "success");
+    setStatus(`Packed! Next: ${next.name} — ${next.desc}`, "success");
     renderAll();
   } else {
     selectedItemId = null;
@@ -400,8 +406,8 @@ export function initGridInput() {
       const check = showGhostPreview(r, c);
       pendingTap = { r, c };
       if (check) {
-        if (check.valid) setStatus("👆 Lift, then tap the green spot to place.", "normal");
-        else setStatus(`⚠️ ${check.reason}`, "error");
+        if (check.valid) setStatus("Lift, then tap the highlighted spot to place.", "normal");
+        else setStatus(check.reason, "error");
       }
     }
   }, { passive: false });
@@ -461,7 +467,7 @@ function selectItem(id) {
     unpackFromGrid(id);
   }
   selectedItemId = id;
-  setStatus(`${item.emoji} ${item.name}: ${item.desc}`, "normal");
+  setStatus(`${item.name}: ${item.desc}`, "normal");
   fx.tap();
   renderAll();
 }
@@ -483,7 +489,7 @@ export function useHint() {
     fx.coin();
   }
   const blocked = item.solCells.some(([r, c]) => gridState[r][c] !== null);
-  setStatus(`💡 ${item.emoji} ${item.name} fits the glowing outline${blocked ? " — move what's in the way first" : ""}. Rotate to match!`, "normal");
+  setStatus(`The ${item.name} fits the dashed outline${blocked ? " — move what's in the way first" : ""}. Rotate to match!`, "normal");
   renderAll();
 }
 
@@ -502,7 +508,7 @@ export function resetLevel() {
   if (curveballDeclined && !curveballAccepted) { curveballDeclined = false; curveballPrompted = false; }
   selectedItemId = itemsState[0].id;
   updateCurveballBanner();
-  setStatus("🗑️ Unpacked everything (Undo to restore).", "normal");
+  setStatus("Unpacked everything (Undo to restore).", "normal");
   fx.tap();
   renderAll();
 }
@@ -522,11 +528,14 @@ export const currentLevelIndex = () => currentLevelIdx;
 
 export function packHeader() {
   if (!levelCfg) return null;
+  const [subtitle, ...rest] = levelCfg.subtitle.split(" • ");
   return {
     title: levelCfg.route,
-    subtitle: levelCfg.subtitle,
-    badge: (levelCfg.isDaily ? "📅 Daily" : levelCfg.isCustom ? "🛠️ Custom" : `Bag ${currentLevelIdx + 1}/${LEVELS.length}`)
-      + (isPerfect(save.bagStars[levelCfg.id] || 0) ? " 🏆" : "")
+    subtitle,
+    detail: rest.join(" · "),
+    badgeLabel: "Bag",
+    badge: levelCfg.isDaily ? "Daily" : levelCfg.isCustom ? "Custom" : `${currentLevelIdx + 1}/${LEVELS.length}`,
+    perfect: isPerfect(save.bagStars[levelCfg.id] || 0)
   };
 }
 
@@ -550,7 +559,7 @@ export function continueTrip() {
   }
   switchMode("trivia");
   loadTriviaRound(idx);
-  toast(`🛬 Landed in ${levelCfg.dest} — route your onward connection!`);
+  toast(`Landed in ${levelCfg.dest} — route your onward connection!`);
 }
 
 function checkWin(silent = false) {
@@ -589,14 +598,14 @@ function checkWin(silent = false) {
 
   const curveballPending = curveballPrompted && !curveballAccepted && !curveballDeclined;
   $("winStars").innerHTML = [1, 2, 4].map(b => (mask & b) ? "★" : `<span class="dim">★</span>`).join("");
-  $("winTitle").textContent = earned ? `✅ Carry-On Zipped! (+${earned} MI)` : "✅ Carry-On Zipped!";
+  $("winTitle").textContent = earned ? `Carry-On Zipped! +${earned} MI` : "Carry-On Zipped!";
 
-  const crit = [`<li class="ok">⭐ Packed within TSA rules (${packMoves} moves)</li>`];
+  const crit = [`<li class="ok">★ Packed within TSA rules (${packMoves} moves)</li>`];
   crit.push(bal.isBalanced
-    ? `<li class="ok">⭐ Balanced, heavy items riding low</li>`
+    ? `<li class="ok">★ Balanced, heavy items riding low</li>`
     : `<li>☆ ${bal.topHeavy ? "Top-heavy — move heavy items down" : `Leaning ${bal.shift < 0 ? "left" : "right"} — rebalance`}</li>`);
   crit.push(empty === 0
-    ? `<li class="ok">⭐ Zipped 100% full</li>`
+    ? `<li class="ok">★ Zipped 100% full</li>`
     : `<li>☆ ${empty} empty slot${empty > 1 ? "s" : ""} — ${curveballPending ? "accept the curveball above!" : "Reset & take the curveball"}</li>`);
   if (!earned && prev) crit.push(`<li>Stars already banked — no repeat miles</li>`);
   $("winCriteria").innerHTML = crit.join("");
@@ -604,10 +613,10 @@ function checkWin(silent = false) {
   const tripIdx = tripRoundIndex();
   const tripBtn = $("btnContinueTrip");
   tripBtn.style.display = tripIdx >= 0 ? "flex" : "none";
-  if (tripIdx >= 0) tripBtn.textContent = `🛫 Connect at ${levelCfg.dest} ➔`;
+  if (tripIdx >= 0) tripBtn.textContent = `Connect at ${levelCfg.dest}`;
   $("btnNextBag").textContent = levelCfg.isDaily || levelCfg.isCustom
-    ? "Back to Bags ➔"
-    : currentLevelIdx + 1 < LEVELS.length ? "Next Bag ➔" : "📅 Daily Bag ➔";
+    ? "Back to Bags"
+    : currentLevelIdx + 1 < LEVELS.length ? "Next Bag" : "Daily Bag";
 
   $("winBanner").classList.add("show");
   const body = $("suitcaseBody");
@@ -615,7 +624,7 @@ function checkWin(silent = false) {
   void body.offsetWidth;
   body.classList.add("zipped");
 
-  setStatus(`🎉 ${starString(mask)} All items packed within TSA rules!`, "success");
+  setStatus(`${starString(mask)} All items packed within TSA rules!`, "success");
   renderLevelStrip();
   updateSkipButton();
   updateCurveballBanner();
@@ -628,7 +637,7 @@ function announceUnlockedFlights(bagId) {
   if (!opened.length) return;
   renderFlightStrip();
   const list = opened.map(r => `${r.origin} ✈ ???`).join(" & ");
-  setTimeout(() => toast(`🛫 New trivia flight${opened.length > 1 ? "s" : ""} unlocked: ${list}`), 1200);
+  setTimeout(() => toast(`New trivia flight${opened.length > 1 ? "s" : ""} unlocked: ${list}`), 1200);
 }
 
 /* Skipping a stuck bag (hand-made levels only) */
@@ -637,7 +646,7 @@ const skippable = () => levelCfg && !levelCfg.isDaily && !levelCfg.isCustom && c
 function updateSkipButton() {
   const btn = $("btnSkipBag");
   btn.hidden = !skippable() || levelWon;
-  btn.textContent = skipArmed ? "⏭ Tap again to skip — no stars or miles" : "⏭ Stuck? Skip this bag";
+  btn.textContent = skipArmed ? "Tap again to skip — no stars or miles" : "Stuck? Skip this bag";
   btn.classList.toggle("armed", skipArmed);
 }
 
@@ -655,11 +664,13 @@ export function skipBag() {
   clearTimeout(skipTimer);
   save.skippedBags[levelCfg.id] = true;
   persist();
-  toast(`⏭ Skipped ${levelCfg.route} — come back any time to earn its stars.`);
+  toast(`Skipped ${levelCfg.route} — come back any time to earn its stars.`);
   loadNextBagAfter(currentLevelIdx);
 }
 
 /* Rendering */
+const chipIcon = (name) => `<svg class="ico" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+
 export function renderLevelStrip() {
   const strip = $("levelStrip");
   strip.innerHTML = "";
@@ -675,11 +686,13 @@ export function renderLevelStrip() {
     if (!levelCfg.isDaily && !levelCfg.isCustom && i === currentLevelIdx) chip.classList.add("active");
     if (!unlocked) chip.classList.add("locked");
     if (perfect) chip.classList.add("perfect");
-    const marks = !unlocked ? "🔒 " : `${perfect ? "🏆 " : ""}${itinDone ? "🎫 " : ""}${skipped ? "⏭ " : ""}`;
-    chip.innerHTML = `<span>${marks}${lv.dest}</span><span class="chip-stars">${starString(mask)}</span>`;
+    if (itinDone) chip.classList.add("itinerary");
+    if (skipped) chip.classList.add("skipped");
+    const marks = !unlocked ? chipIcon("lock") : `${itinDone ? chipIcon("plane") : ""}${skipped ? chipIcon("skip") : ""}`;
+    chip.innerHTML = `<span class="chip-code">${marks}${lv.dest}</span><span class="chip-stars">${starString(mask)}</span>`;
     chip.title = lv.route + (perfect ? " • Zipped perfectly" : "") + (itinDone ? " • Full Itinerary Completed" : "") + (skipped ? " • Skipped" : "");
     chip.onclick = () => {
-      if (!unlocked) { setStatus(`🔒 Pack (or skip) bag ${i} first to unlock ${lv.route}.`, "error"); fx.error(); return; }
+      if (!unlocked) { setStatus(`Pack (or skip) bag ${i} first to unlock ${lv.route}.`, "error"); fx.error(); return; }
       fx.tap();
       loadLevel(i);
     };
@@ -690,7 +703,7 @@ export function renderLevelStrip() {
   const daily = document.createElement("button");
   daily.id = "levelChip-daily";
   daily.className = "level-chip daily" + (levelCfg.isDaily ? " active" : "") + (isPerfect(dailyMask) ? " perfect" : "");
-  daily.innerHTML = `<span>📅 Daily</span><span class="chip-stars">${starString(dailyMask)}</span>`;
+  daily.innerHTML = `<span class="chip-code">${chipIcon("calendar")}Daily</span><span class="chip-stars">${starString(dailyMask)}</span>`;
   daily.onclick = () => { fx.tap(); loadLevel("daily"); };
   strip.appendChild(daily);
 
@@ -699,7 +712,7 @@ export function renderLevelStrip() {
     const cust = document.createElement("button");
     cust.id = "levelChip-custom";
     cust.className = "level-chip custom" + (levelCfg.isCustom ? " active" : "") + (isPerfect(custMask) ? " perfect" : "");
-    cust.innerHTML = `<span>🛠️ ${app.customBagCfg.dest}</span><span class="chip-stars">${starString(custMask)}</span>`;
+    cust.innerHTML = `<span class="chip-code">${chipIcon("wrench")}${app.customBagCfg.dest}</span><span class="chip-stars">${starString(custMask)}</span>`;
     cust.onclick = () => { fx.tap(); loadLevel("custom"); };
     strip.appendChild(cust);
   }
@@ -718,7 +731,7 @@ function renderAll() {
   gridEl.style.aspectRatio = `${cols} / ${rows}`;
   gridEl.innerHTML = "";
 
-  // One emoji per item, placed on the cell nearest its centroid
+  // One drawing per item, placed on the cell nearest its centroid
   const groups = {};
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
@@ -756,22 +769,23 @@ function renderAll() {
       } else if (v) {
         const item = getItem(v);
         cell.classList.add("filled");
-        cell.style.backgroundColor = item.color;
+        if (item.rule === "HEAVY" || item.rule === "BOTTOM_HEAVY") cell.classList.add("heavy");
+        cell.style.setProperty("--c", item.color);
         if (same(r, c + 1, v)) cell.classList.add("join-r");
         if (same(r + 1, c, v)) cell.classList.add("join-d");
         if (same(r, c - 1, v)) cell.classList.add("join-l");
         if (same(r - 1, c, v)) cell.classList.add("join-u");
         if (same(r, c + 1, v) && same(r + 1, c, v) && same(r + 1, c + 1, v)) cell.classList.add("join-rd");
         if (anchors.has(r + "," + c)) {
-          const em = document.createElement("span");
-          em.className = "cell-emoji";
-          em.textContent = item.emoji;
-          cell.appendChild(em);
-          const tagText = item.isBonus ? "⭐" : RULE_META[item.rule].tag;
-          if (tagText) {
+          const art = document.createElement("span");
+          art.className = "cell-art";
+          art.innerHTML = itemArt(item.name);
+          cell.appendChild(art);
+          const badge = ruleBadge(item.isBonus ? "BONUS" : item.rule);
+          if (badge) {
             const tag = document.createElement("span");
             tag.className = "cell-tag";
-            tag.textContent = tagText;
+            tag.innerHTML = badge;
             cell.appendChild(tag);
           }
         }
@@ -798,7 +812,7 @@ function renderAll() {
   updateSkipButton();
   $("btnRotate").disabled = !sel || sel.packed;
   $("btnHint").disabled = !sel || sel.packed;
-  $("btnHint").textContent = sel && hintedIds.has(sel.id) ? "💡 Shown" : `💡 ${HINT_COST}`;
+  $("btnHint").innerHTML = `<svg class="ico" aria-hidden="true"><use href="#i-bulb"/></svg>${sel && hintedIds.has(sel.id) ? "Shown" : HINT_COST}`;
   $("trayHint").textContent = isTouchInput() ? "Tap to preview • tap again to place" : "Tap packed item in bag to remove";
 }
 
@@ -820,34 +834,40 @@ function renderTray() {
     if (item.packed) card.classList.add("packed");
     if (item.isBonus) card.classList.add("bonus-card");
 
-    const title = document.createElement("div");
-    title.className = "item-title";
-    title.textContent = `${item.emoji} ${item.name}`;
+    // The object's drawing, with its footprint in the corner
+    const figure = document.createElement("div");
+    figure.className = "item-figure";
+    figure.style.setProperty("--c", item.color);
+    figure.innerHTML = itemArt(item.name);
 
     const miniGrid = document.createElement("div");
     miniGrid.className = "mini-grid";
-    miniGrid.style.gridTemplateColumns = `repeat(${item.shape[0].length}, 10px)`;
+    miniGrid.style.gridTemplateColumns = `repeat(${item.shape[0].length}, 7px)`;
     item.shape.forEach(row => row.forEach(v => {
       const mc = document.createElement("div");
-      mc.className = "mini-cell";
-      mc.style.backgroundColor = v ? item.color : "transparent";
+      mc.className = "mini-cell" + (v ? " on" : "");
       miniGrid.appendChild(mc);
     }));
+    figure.appendChild(miniGrid);
 
+    const title = document.createElement("div");
+    title.className = "item-title";
+    title.textContent = item.name;
+
+    card.appendChild(figure);
     card.appendChild(title);
-    card.appendChild(miniGrid);
 
     if (item.isBonus && !item.packed) {
       const leave = document.createElement("button");
       leave.className = "leave-btn";
       leave.id = "btnLeaveBonus";
-      leave.textContent = "🚪 Leave at gate";
+      leave.textContent = "Leave at gate";
       leave.onclick = (e) => { e.stopPropagation(); leaveBonus(); };
       card.appendChild(leave);
     } else {
       const pill = document.createElement("div");
       pill.className = "rule-pill";
-      pill.textContent = item.packed ? "✓ Packed" : item.ruleLabel;
+      pill.textContent = item.packed ? "In bag" : item.ruleLabel;
       card.appendChild(pill);
     }
 

@@ -3,17 +3,21 @@
 import { DIRS, mulberry32, hashStr, rotateMatrix, todayKey } from "./util.js";
 import { computeBalance } from "./packing.js";
 
-const PALETTE = ["#38bdf8", "#818cf8", "#fbbf24", "#f87171", "#c084fc", "#34d399", "#fb923c", "#f472b6", "#2dd4bf", "#a3e635", "#60a5fa", "#e879f9", "#facc15", "#94a3b8"];
+// Muted item colours from the site's illustration palette. Rule items share a colour so the rule
+// reads at a glance (sand = TSA top row, slate = heavy, mist = fragile); flexible items take the rest.
+const RULE_COLORS = { TOP_ROW: "#E2D3B2", BOTTOM_HEAVY: "#8FA3A6", HEAVY: "#8FA3A6", FRAGILE: "#C9DCDA" };
+const PALETTE = ["#D8C3AE", "#C5CFB4", "#B9C7D6", "#D9D2C1", "#C8B9A6", "#BFD0C4", "#D3C4CF", "#CBBFA1"];
+const BONUS_COLOR = "#A7D3D6";
 
 export const RULE_META = {
-  TOP_ROW: { label: "TSA: Top Row", desc: "TSA quick-access: must touch the top zipper row.", tag: "🛂" },
-  BOTTOM_HEAVY: { label: "Bottom + Heavy", desc: "Heavy! Must touch the bottom row and can't touch Fragile items.", tag: "⚓" },
-  HEAVY: { label: "Heavy", desc: "Heavy! Can't touch Fragile items — keep it low for balance.", tag: "⚓" },
-  FRAGILE: { label: "Fragile", desc: "Fragile! Cannot touch Heavy items.", tag: "⚠️" },
-  NONE: { label: "Flexible", desc: "Squishy — fits anywhere.", tag: "" }
+  TOP_ROW: { label: "TSA: Top Row", desc: "TSA quick-access: must touch the top zipper row." },
+  BOTTOM_HEAVY: { label: "Bottom + Heavy", desc: "Heavy! Must touch the bottom row and can't touch Fragile items." },
+  HEAVY: { label: "Heavy", desc: "Heavy! Can't touch Fragile items — keep it low for balance." },
+  FRAGILE: { label: "Fragile", desc: "Fragile! Cannot touch Heavy items." },
+  NONE: { label: "Flexible", desc: "Squishy — fits anywhere." }
 };
 
-const GENERIC = {
+export const GENERIC = {
   top: [["3-1-1 Liquids", "🧴"], ["Laptop", "💻"], ["Tablet", "📱"], ["Toiletry Kit", "🪥"], ["Camera", "📷"]],
   bottomHeavy: [["Hiking Boots", "🥾"], ["Sneakers", "👟"], ["Book Stack", "📚"]],
   heavy: [["Hair Dryer", "💨"], ["Power Bank", "🔋"], ["Travel Iron", "🧺"]],
@@ -102,7 +106,7 @@ export function dailyConfig(key = todayKey()) {
   const layout = DAILY_LAYOUTS[Math.floor(rng() * DAILY_LAYOUTS.length)];
   return {
     id: "daily-" + key, dateKey: key, route, dest, theme, seed: seed % 100000,
-    subtitle: `📅 Daily Bag • ${key} • Same bag for everyone on this date`,
+    subtitle: `Daily bag • ${key}`,
     ...layout,
     rules: { top: 2, bottomHeavy: 1, heavy: 1, fragile: 2 },
     isDaily: true
@@ -287,7 +291,7 @@ function buildItems(bag, cfg) {
       id: isBonus ? "bonus" : `item${idx}`,
       name: def[0],
       emoji: def[1],
-      color: isBonus ? "#38bdf8" : PALETTE[(colorOffset + idx) % PALETTE.length],
+      color: isBonus ? BONUS_COLOR : RULE_COLORS[rule] || PALETTE[(colorOffset + idx) % PALETTE.length],
       rule,
       ruleLabel: isBonus ? "+500 MI Bonus" : RULE_META[rule].label,
       desc: isBonus ? "Gate Agent Curveball! Squeeze it in to zip the bag 100% full." : RULE_META[rule].desc,
