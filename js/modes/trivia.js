@@ -11,16 +11,19 @@ import { isRoundUnlocked } from "../progress.js";
 import { newShuffle } from "./boarding.js";
 import { shortCity } from "../data/airports.js";
 import { recordTrivia } from "../records.js";
+import { ROUTE_MAPS } from "../data/route-maps.js";
 
 const TRIVIA_START_POT = 500;
 const WRONG_PENALTY = 150;
 const FIFTY_COST = 100;
+const MAP_TIP_COST = 150;
 
 let currentTriviaIdx = 0;
 let currentTriviaPot = TRIVIA_START_POT;
 let triviaRoundOver = false;
 let triviaPractice = false;
 let fiftyUsed = false;
+let mapShown = false;
 // The round's score for records: what the pool would pay, tracked in practice rounds too
 let roundScore = TRIVIA_START_POT;
 let wrongGuesses = 0;
@@ -51,7 +54,8 @@ function compass(deg) {
   return pts[Math.round(deg / 22.5) % 16];
 }
 
-function drawRadar(round) {
+// Heading plot: origin at the centre, a bowed arc out along the heading, longer for longer flights
+function plotGeometry(round) {
   const ox = 140, oy = 70;
   const scale = Math.min(1, 0.35 + round.hours / 8);
   const rad = (round.hdg * Math.PI) / 180;
@@ -66,24 +70,38 @@ function drawRadar(round) {
   if (py > 0) { px = -px; py = -py; }
   const bend = Math.hypot(dx - ox, dy - oy) * 0.22;
   const cx = mx + px * bend, cy = my + py * bend;
+  return { from: [ox, oy], to: [dx, dy], route: `M ${ox} ${oy} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${dx.toFixed(1)} ${dy.toFixed(1)}` };
+}
 
-  $("radarRoute").setAttribute("d", `M ${ox} ${oy} Q ${cx.toFixed(1)} ${cy.toFixed(1)} ${dx.toFixed(1)} ${dy.toFixed(1)}`);
-  $("radarDestDot").setAttribute("cx", dx.toFixed(1));
-  $("radarDestDot").setAttribute("cy", dy.toFixed(1));
+function drawRadar(round) {
+  const map = mapShown && ROUTE_MAPS[round.id];
+  const { from: [ox, oy], to: [dx, dy], route } = map || plotGeometry(round);
+  $("radarSvg").classList.toggle("map-on", !!map);
+  $("radarLand").setAttribute("d", map ? map.land : "");
+
+  $("radarRoute").setAttribute("d", route);
+  $("radarOriginDot").setAttribute("cx", ox);
+  $("radarOriginDot").setAttribute("cy", oy);
+  for (const id of ["radarDestDot", "radarDestZone"]) {
+    $(id).setAttribute("cx", dx.toFixed(1));
+    $(id).setAttribute("cy", dy.toFixed(1));
+  }
   const destText = $("radarDestText");
   destText.setAttribute("x", Math.max(4, Math.min(250, dx - 12)).toFixed(1));
-  destText.setAttribute("y", Math.max(12, Math.min(136, dy < oy ? dy - 10 : dy + 18)).toFixed(1));
+  destText.setAttribute("y", Math.max(12, Math.min(136, dy < oy ? dy - (map ? 20 : 10) : dy + (map ? 28 : 18))).toFixed(1));
+  // Origin label on the side away from the route
   const originText = $("radarOriginText");
-  originText.setAttribute("y", round.hdg > 90 && round.hdg < 270 ? 60 : 88);
+  originText.setAttribute("x", Math.max(4, Math.min(250, ox - 12)).toFixed(1));
+  originText.setAttribute("y", Math.max(12, Math.min(136, dy > oy ? oy - 10 : oy + 16)).toFixed(1));
 
   // The plane flies the route on a loop; with reduced motion it rests halfway along it
   const plane = `<path class="radar-plane" transform="translate(-12 -12)" d="M21 12.5c0-.8-.7-1.5-1.5-1.5H15L10.5 3H8.6l2.2 8H6.2L4.6 9H3l1 3.5L3 16h1.6l1.6-2h4.6l-2.2 8h1.9l4.5-8h4.5c.8 0 1.5-.7 1.5-1.5z" />`;
   const still = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (still) {
-    // Midpoint of the quadratic curve; its direction there is parallel to origin → destination
-    const midX = 0.25 * ox + 0.5 * cx + 0.25 * dx, midY = 0.25 * oy + 0.5 * cy + 0.25 * dy;
-    const deg = (Math.atan2(dy - oy, dx - ox) * 180) / Math.PI;
-    $("radarPlaneLayer").innerHTML = `<g transform="translate(${midX.toFixed(1)} ${midY.toFixed(1)}) rotate(${deg.toFixed(1)}) scale(0.7)">${plane}</g>`;
+    const path = $("radarRoute"), half = path.getTotalLength() / 2;
+    const a = path.getPointAtLength(half - 1), b = path.getPointAtLength(half + 1);
+    const deg = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+    $("radarPlaneLayer").innerHTML = `<g transform="translate(${((a.x + b.x) / 2).toFixed(1)} ${((a.y + b.y) / 2).toFixed(1)}) rotate(${deg.toFixed(1)}) scale(0.7)">${plane}</g>`;
   } else {
     $("radarPlaneLayer").innerHTML = `
     <g>
@@ -138,6 +156,7 @@ export function loadTriviaRound(idx) {
   currentTriviaPot = triviaPractice ? 0 : TRIVIA_START_POT;
   triviaRoundOver = false;
   fiftyUsed = false;
+  mapShown = false;
   roundScore = TRIVIA_START_POT;
   wrongGuesses = 0;
 
@@ -149,6 +168,10 @@ export function loadTriviaRound(idx) {
   $("telemetryHeading").textContent = `HDG ${String(round.hdg).padStart(3, "0")}° ${compass(round.hdg)} · ${round.dur}`;
   updatePot();
   $("clue1Text").textContent = round.clue1;
+
+  $("mapTipBox").classList.remove("revealed");
+  $("mapTipText").textContent = "Sealed — see the route on a real map";
+  $("btnMapTip").style.display = "inline-flex";
 
   [2, 3].forEach(n => {
     $(`clue${n}Box`).classList.remove("revealed");
@@ -192,6 +215,21 @@ export function unlockClue(num) {
   const t = $(`clue${num}Text`);
   t.textContent = num === 2 ? round.clue2 : round.clue3;
   $(`btnClue${num}`).style.display = "none";
+  updatePot();
+  fx.tap();
+}
+
+// Tip: swap the heading plot for a regional map of the route, with a landing zone around where it ends
+export function showRouteMap() {
+  if (triviaRoundOver || mapShown) return;
+  const round = TRIVIA_ROUNDS[currentTriviaIdx];
+  mapShown = true;
+  currentTriviaPot = Math.max(0, currentTriviaPot - MAP_TIP_COST);
+  roundScore = Math.max(0, roundScore - MAP_TIP_COST);
+  drawRadar(round);
+  $("mapTipBox").classList.add("revealed");
+  $("mapTipText").textContent = "On the plot above — the dashed ring is roughly where this flight lands.";
+  $("btnMapTip").style.display = "none";
   updatePot();
   fx.tap();
 }

@@ -41,6 +41,7 @@ const ACTIONS = {
   skipBag: pack.skipBag,
   unlockClue: (n) => trivia.unlockClue(Number(n)),
   fiftyFifty: trivia.fiftyFifty,
+  showRouteMap: trivia.showRouteMap,
   nextFlight: trivia.nextTriviaRound,
   boardFlight: trivia.continueToBoarding,
   newShuffle: boarding.newShuffle,

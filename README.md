@@ -42,6 +42,7 @@ CI runs all of these on every pull request (`.github/workflows/ci.yml`).
 | `js/art.js`, `js/theme.js` | Drawings of items and passengers (in place of emoji); the light / dark toggle. |
 | `js/data/airports.js` | City names shown above the codes on the boarding pass. |
 | `js/data/trivia-rounds.js` | Trivia flights and clues. |
+| `js/data/route-maps.js` | The Trivia "Route map" tip's map per flight. **Generated:** run `npm run build:maps` after adding or changing a flight (and add the origin's coordinates to `scripts/build-route-maps.js`). |
 | `sw.js` | Offline service worker. **Add new files to its `ASSETS` list** (a unit test checks this). |
 | `tests/unit/`, `tests/e2e/` | Unit and end-to-end tests. |
 

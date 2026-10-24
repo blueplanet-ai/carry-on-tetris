@@ -40,6 +40,7 @@
   --art-light: rgba(255, 255, 255, 0.55);
   --slate: #8FA3A6;
   --sea: #D3E2E0;
+  --land: #F4F7F0;
   --tag: #E2D3B2;
   --pax-skin: #E2D3B2;
   --pax-prop-light: #E2D3B2;
@@ -81,6 +82,7 @@
     --art-light: rgba(255, 255, 255, 0.35);
     --slate: #5F767A;
     --sea: #122326;
+    --land: #2A3739;
     --tag: #4A4232;
     --pax-skin: #B9AB8C;
     --pax-prop-light: #B9AB8C;
@@ -117,6 +119,7 @@
   --art-light: rgba(255, 255, 255, 0.35);
   --slate: #5F767A;
   --sea: #122326;
+  --land: #2A3739;
   --tag: #4A4232;
   --pax-skin: #B9AB8C;
   --pax-prop-light: #B9AB8C;
@@ -749,6 +752,12 @@ button { color: inherit; }
 .radar-code { font-family: var(--font-pass); font-weight: 700; font-size: 12px; fill: var(--ink); }
 .radar-code.dest { fill: var(--signal-text); }
 .radar-plane { fill: var(--signal-text); }
+/* Route map tip: land under the route, grid hidden, and a soft landing zone instead of a pinpoint */
+.map-land { display: none; fill: var(--land); stroke: var(--line-strong); stroke-width: 0.6; stroke-linejoin: round; }
+.map-zone { display: none; fill: var(--signal); fill-opacity: 0.16; stroke: var(--signal); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.radar-svg.map-on .map-land, .radar-svg.map-on .map-zone { display: inline; }
+.radar-svg.map-on .radar-grid, .radar-svg.map-on .radar-dest { display: none; }
+.radar-svg.map-on .radar-code { paint-order: stroke; stroke: var(--sea); stroke-width: 3px; stroke-linejoin: round; }
 .radar-telemetry {
   display: flex;
   justify-content: space-between;

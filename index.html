@@ -47,6 +47,7 @@
     <symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M3 7h4l10 10h4M3 17h4l3-3M14 10l3-3h4M18 4l3 3-3 3M18 14l3 3-3 3"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
     <symbol id="i-door" viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="5"/><circle cx="12" cy="9" r="2"/><path d="M15 13v3"/></symbol>
+    <symbol id="i-map" viewBox="0 0 24 24"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></symbol>
     <symbol id="i-plane" viewBox="0 0 24 24"><path d="M21 12.5c0-.8-.7-1.5-1.5-1.5H15L10.5 3H8.6l2.2 8H6.2L4.6 9H3l1 3.5L3 16h1.6l1.6-2h4.6l-2.2 8h1.9l4.5-8h4.5c.8 0 1.5-.7 1.5-1.5z"/></symbol>
   </defs>
 </svg>
@@ -187,17 +188,21 @@
   <section id="modeTrivia" class="mode-view hidden" aria-label="Where Are We Flying trivia">
     <div class="level-strip" id="flightStrip" aria-label="Trivia flights"></div>
     <figure class="radar-card">
-      <svg class="radar-svg" viewBox="0 0 280 140" role="img" aria-label="Flight plot showing the route heading">
-        <circle class="radar-ring" cx="140" cy="70" r="66" />
-        <circle class="radar-ring" cx="140" cy="70" r="44" />
-        <circle class="radar-ring" cx="140" cy="70" r="22" />
-        <line class="radar-axis" x1="10" y1="70" x2="270" y2="70" />
-        <line class="radar-axis" x1="140" y1="2" x2="140" y2="138" />
+      <svg class="radar-svg" id="radarSvg" viewBox="0 0 280 140" role="img" aria-label="Flight plot showing the route heading">
+        <path id="radarLand" class="map-land" d="" />
+        <g class="radar-grid">
+          <circle class="radar-ring" cx="140" cy="70" r="66" />
+          <circle class="radar-ring" cx="140" cy="70" r="44" />
+          <circle class="radar-ring" cx="140" cy="70" r="22" />
+          <line class="radar-axis" x1="10" y1="70" x2="270" y2="70" />
+          <line class="radar-axis" x1="140" y1="2" x2="140" y2="138" />
+        </g>
         <path class="radar-north" d="M22 24 l6 -14 l6 14 l-6 -4 z" />
         <text class="radar-label" x="24" y="38">N</text>
         <path id="radarRoute" class="radar-route" d="M 140 70 Q 180 30 230 40" />
         <circle id="radarOriginDot" class="radar-origin" cx="140" cy="70" r="5" />
         <text id="radarOriginText" class="radar-code" x="128" y="86">SFO</text>
+        <circle id="radarDestZone" class="map-zone" cx="230" cy="40" r="16" />
         <circle id="radarDestDot" class="radar-dest" cx="230" cy="40" r="7" />
         <text id="radarDestText" class="radar-code dest" x="220" y="30">???</text>
         <g id="radarPlaneLayer"></g>
@@ -215,6 +220,14 @@
           <div class="clue-label">01 · Flight telemetry · Free</div>
           <div class="clue-text" id="clue1Text">Loading flight telemetry...</div>
         </div>
+      </div>
+      <div class="clue-box" id="mapTipBox">
+        <span class="clue-icon"><svg class="ico" aria-hidden="true"><use href="#i-map"/></svg></span>
+        <div class="clue-body">
+          <div class="clue-label">Tip · Route map</div>
+          <div class="clue-text" id="mapTipText">Sealed — see the route on a real map</div>
+        </div>
+        <button class="btn btn-xs btn-accent-outline" id="btnMapTip" data-action="showRouteMap"><svg class="ico" aria-hidden="true"><use href="#i-lock"/></svg>−150</button>
       </div>
       <div class="clue-box" id="clue2Box">
         <span class="clue-icon"><svg class="ico" aria-hidden="true"><use href="#i-cloud"/></svg></span>

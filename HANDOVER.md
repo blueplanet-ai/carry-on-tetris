@@ -1,7 +1,7 @@
 # Project Handover: Gate Games
 
-**Date:** 2026-10-23  
-**Current Version:** v0.7  
+**Date:** 2026-10-24  
+**Current Version:** v0.7.2  
 **Status:** Playable, tested, zero-dependency client-side PWA  
 **Stack:** Vanilla HTML5, CSS3, ES modules (no build step), Web Audio API, Web Haptics, Service Worker (network-first, offline fallback)  
 
@@ -121,6 +121,12 @@ The game now uses the look of [blueplanet-ai.github.io](https://blueplanet-ai.gi
 4. The 🛠️ window is now just the custom bag builder.
 5. **Save v3** adds `bagRecords`, `triviaRecords` and `boardingRecords`.
 6. **New app icon** in the v0.7 look (`icon.svg`): a light hard-shell suitcase on boarding-pass teal, packed with pieces in the rule colours and one orange accent. `apple-touch-icon.png` (180×180) is a render of it for iOS, which ignores SVG touch icons; re-render it if the SVG changes. The manifest's old navy colours now match the page's Sage ground. Service worker cache is `gate-games-v12`.
+
+### 🗺️ What Was Added in v0.7.2 (route map tip)
+1. **Route map tip in Trivia:** a "Tip · Route map" card under the free telemetry clue. It costs 150 from the reward pool (and the flight's record score), the same as a wrong guess. It swaps the heading plot for a regional map of real coastlines around the route. The route ends in a soft dashed "landing zone" instead of a pinpoint, so the map narrows the answer down without naming it. The next flight starts on the plain plot again.
+2. **The map shows the clue, not the answer:** each route is flown from the origin along the flight's heading for its flight time (800 km/h after 30 min of taxi and climb), so it lands where telemetry says, not on the answer's coordinates.
+3. **Generated data:** `js/data/route-maps.js` (~60 KB, 12 maps) is built by `npm run build:maps` (`scripts/build-route-maps.js`) from Natural Earth 1:50m land (`world-atlas` dev dependency). Each map is clipped to the 280×140 plot and simplified. Rerun it after adding or changing a flight; a unit test fails if a flight has no map. New origins need coordinates in the script's `AIRPORTS` table.
+4. New `--land` colour token (lighter than `--sea` in dark mode so coastlines read). Service worker cache is `gate-games-v13`.
 
 ---
 
