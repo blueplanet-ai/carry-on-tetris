@@ -119,7 +119,8 @@ The game now uses the look of [blueplanet-ai.github.io](https://blueplanet-ai.gi
    - **Boarding:** per cabin size (3×3 and 4×4), the best result against par (line-ups are scrambled differently each time, so raw moves don't compare), line-ups solved and how many finished at or under par.
 3. **New best:** beating an earlier record says so in that game's win banner. A first result is recorded quietly.
 4. The 🛠️ window is now just the custom bag builder.
-5. **Save v3** adds `bagRecords`, `triviaRecords` and `boardingRecords`. Service worker cache is `gate-games-v11`.
+5. **Save v3** adds `bagRecords`, `triviaRecords` and `boardingRecords`.
+6. **New app icon** in the v0.7 look (`icon.svg`): a light hard-shell suitcase on boarding-pass teal, packed with pieces in the rule colours and one orange accent. `apple-touch-icon.png` (180×180) is a render of it for iOS, which ignores SVG touch icons; re-render it if the SVG changes. The manifest's old navy colours now match the page's Sage ground. Service worker cache is `gate-games-v12`.
 
 ---
 

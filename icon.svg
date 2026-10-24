@@ -1,22 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1e293b"/>
-      <stop offset="1" stop-color="#0f172a"/>
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <path d="M196 132 v-28 a20 20 0 0 1 20 -20 h80 a20 20 0 0 1 20 20 v28" fill="none" stroke="#f59e0b" stroke-width="22" stroke-linecap="round"/>
-  <rect x="112" y="132" width="288" height="296" rx="40" fill="#1e293b" stroke="#f59e0b" stroke-width="18"/>
-  <g>
-    <rect x="148" y="168" width="68" height="68" rx="12" fill="#38bdf8"/>
-    <rect x="222" y="168" width="68" height="68" rx="12" fill="#38bdf8"/>
-    <rect x="296" y="168" width="68" height="68" rx="12" fill="#818cf8"/>
-    <rect x="148" y="242" width="68" height="68" rx="12" fill="#f87171"/>
-    <rect x="222" y="242" width="68" height="68" rx="12" fill="#fbbf24"/>
-    <rect x="296" y="242" width="68" height="68" rx="12" fill="#818cf8"/>
-    <rect x="148" y="316" width="68" height="68" rx="12" fill="#f87171"/>
-    <rect x="222" y="316" width="68" height="68" rx="12" fill="#f87171"/>
-    <rect x="296" y="316" width="68" height="68" rx="12" fill="#34d399"/>
-  </g>
+  <!-- Boarding-pass teal ground; everything sits inside the maskable safe zone -->
+  <rect width="512" height="512" rx="112" fill="#0B4A54"/>
+  <!-- Telescoping handle -->
+  <path d="M212 152 V96 H300 V152" fill="none" stroke="#A9C3C4" stroke-width="18" stroke-linejoin="round"/>
+  <!-- Hard shell -->
+  <rect x="136" y="150" width="240" height="240" rx="34" fill="#EBF0E6"/>
+  <!-- Packed pieces in the rule colours, one teal (held) and one orange (the action) -->
+  <rect x="164" y="178" width="120" height="56" rx="10" fill="#E2D3B2"/>
+  <rect x="292" y="178" width="56" height="120" rx="10" fill="#0892A5"/>
+  <rect x="164" y="242" width="56" height="120" rx="10" fill="#8FA3A6"/>
+  <rect x="228" y="242" width="56" height="56" rx="10" fill="#C2622D"/>
+  <rect x="228" y="306" width="120" height="56" rx="10" fill="#C9D6D3"/>
+  <!-- Wheels -->
+  <circle cx="186" cy="412" r="16" fill="#A9C3C4"/>
+  <circle cx="326" cy="412" r="16" fill="#A9C3C4"/>
 </svg>
