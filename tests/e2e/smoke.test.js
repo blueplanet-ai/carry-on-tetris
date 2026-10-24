@@ -135,6 +135,24 @@ test("routing the first trivia flight correctly pays the full reward pool", asyn
   await close();
 });
 
+test("the route map tip swaps the plot for a map and costs 150 from the pool", async () => {
+  const { page, errors, close } = await openGame();
+  const m0 = await miles(page);
+  await page.click("#tabMode2");
+  assert.equal(await page.locator("#radarSvg.map-on").count(), 0, "the map starts hidden");
+  await page.click("#btnMapTip");
+  assert.equal(await page.locator("#radarSvg.map-on").count(), 1);
+  assert.ok((await page.getAttribute("#radarLand", "d")).length > 100, "no land drawn");
+  assert.match(await page.textContent("#telemetryPot"), /\+350 MI/);
+  await page.click(`#dest-${TRIVIA_ROUNDS[0].answer}`);
+  await page.waitForSelector("#triviaWinBanner.show");
+  assert.equal(await miles(page) - m0, 350);
+  await page.click("#btnNextTrivia");
+  assert.equal(await page.locator("#radarSvg.map-on").count(), 0, "the next flight starts without the map");
+  assert.deepEqual(errors, []);
+  await close();
+});
+
 test("a better trivia replay shows a new best and updates the flight's record", async () => {
   const { page, errors, close } = await openGame();
   const round = TRIVIA_ROUNDS[0];
