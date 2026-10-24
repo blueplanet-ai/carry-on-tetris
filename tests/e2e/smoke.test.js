@@ -84,6 +84,8 @@ test("packing the first bag perfectly earns three stars and 1,000 miles", async 
   await page.click("#levelChip-0");
   assert.match(await page.getAttribute("#levelBadge", "class"), /perfect/);
   assert.match(await page.textContent("#statusText"), /already zipped this bag perfectly/);
+  await page.click("#btnRecords");
+  assert.match(await page.textContent("#bagRecords .day-row:first-child"), /SFO ✈ LAX\s*★★★ · \d+m · \d+% bal/);
   assert.deepEqual(errors, []);
   await close();
 });
@@ -133,6 +135,25 @@ test("routing the first trivia flight correctly pays the full reward pool", asyn
   await close();
 });
 
+test("a better trivia replay shows a new best and updates the flight's record", async () => {
+  const { page, errors, close } = await openGame();
+  const round = TRIVIA_ROUNDS[0];
+  await page.click("#tabMode2");
+  const wrong = round.options.find(([code]) => code !== round.answer)[0];
+  await page.click(`#dest-${wrong}`);
+  await page.click(`#dest-${round.answer}`);
+  await page.waitForSelector("#triviaWinBanner.show");
+  assert.doesNotMatch(await page.textContent("#triviaWinSub"), /New best/, "a first solve isn't a new best");
+  await page.click(`#flightChip-${round.id}`);
+  await page.click(`#dest-${round.answer}`);
+  await page.waitForSelector("#triviaWinBanner.show");
+  assert.match(await page.textContent("#triviaWinSub"), /New best for this flight: 500 points, 0 wrong/);
+  await page.click("#btnRecords");
+  assert.match(await page.textContent("#triviaRecords .day-row:first-child"), /SFO ✈ YVR\s*500 pts · 0 wrong/);
+  assert.deepEqual(errors, []);
+  await close();
+});
+
 test("a shared link that can't be packed falls back to a regular bag", async () => {
   const { page, errors, close } = await openGame("#custom=1&o=SFO&d=NRT&r=5&c=6&t=weekend&k=light&s=777&b=0.1_1.0");
   assert.equal(await page.textContent("#routeTitle"), LEVELS[0].route);
@@ -151,11 +172,12 @@ test("a valid shared link loads that custom bag", async () => {
   await close();
 });
 
-test("the builder's Play Daily Bag button switches to the Pack tab", async () => {
+test("the records window's Play Daily Bag button switches to the Pack tab", async () => {
   const { page, errors, close } = await openGame();
   await page.click("#tabMode2");
-  await page.click("#btnBuilder");
-  await page.click("[data-action=playDailyFromBuilder]");
+  await page.click("#btnRecords");
+  await page.click("#recTab-pack");
+  await page.click("[data-action=playDailyFromRecords]");
   assert.equal(await page.isVisible("#modeTetris"), true);
   assert.equal(await page.textContent("#levelBadge"), "Daily");
   assert.deepEqual(errors, []);
@@ -195,6 +217,11 @@ test("Boarding pays miles for the first line-up of the day only", async () => {
   assert.match(await page.textContent("#shuffleParText"), /PRACTICE/);
   await solveBoarding(page);
   assert.equal(await miles(page) - m0, 400, "second line-up paid again");
+  await page.click("#btnRecords");
+  assert.equal(await page.isVisible("#recPanel-boarding"), true, "records open on the current game's tab");
+  const rec = await page.textContent("#boardingRecords");
+  assert.match(rec, /Line-ups solved\s*2/);
+  assert.match(rec, /At or under par\s*2 of 2/);
   assert.deepEqual(errors, []);
   await close();
 });

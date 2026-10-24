@@ -1,6 +1,5 @@
-// The builder window: your daily bag results and score card, plus the custom bag builder and share links.
-import { $, toast, todayKey } from "./util.js";
-import { save } from "./save.js";
+// The builder window: the custom bag builder and share links.
+import { $, toast } from "./util.js";
 import { fx } from "./audio.js";
 import { app } from "./state.js";
 import { switchMode } from "./shell.js";
@@ -32,7 +31,6 @@ export function loadSharedBagFromHash({ announce = true } = {}) {
 }
 
 export function openBuilder() {
-  renderDailyCard();
   rebuildCustomPreviewGrid();
   $("builderModal").classList.add("show");
   fx.tap();
@@ -40,12 +38,6 @@ export function openBuilder() {
 
 export function closeBuilder() {
   $("builderModal").classList.remove("show");
-}
-
-export function playDailyFromBuilder() {
-  closeBuilder();
-  switchMode("tetris");
-  loadLevel("daily");
 }
 
 export function initBuilderForm() {
@@ -134,48 +126,3 @@ export function shareCustomBagUrl() {
   }
   fx.coin();
 }
-
-function starsText(stars) {
-  return "★".repeat(stars) + "☆".repeat(3 - stars);
-}
-
-// Today's result plus the last week, from this device's save (there are no accounts or server scores)
-function renderDailyCard() {
-  const key = todayKey();
-  $("lbDateLabel").textContent = key;
-  const stats = save.dailyStats || {};
-  const today = stats[key];
-  const head = today
-    ? `<div class="daily-today"><span class="daily-stars">${starsText(today.stars)}</span><span>${today.moves} moves · ${today.balancePct}% balance</span></div>`
-    : `<div class="daily-today empty">Pack today's daily bag to record your score.</div>`;
-
-  const rows = [];
-  const d = new Date();
-  for (let i = 1; i <= 7; i++) {
-    d.setDate(d.getDate() - 1);
-    const dayKey = todayKey(d);
-    const st = stats[dayKey];
-    rows.push(`
-    <div class="day-row${st ? "" : " missed"}">
-      <span>${dayKey}</span>
-      <span>${st ? `${starsText(st.stars)} · ${st.moves}m · ${st.balancePct}% bal` : "not packed"}</span>
-    </div>`);
-  }
-
-  $("dailyCard").innerHTML = head + `<div class="section-label sub">Last 7 days</div>` + rows.join("");
-}
-
-export function shareDailyResult() {
-  const key = todayKey();
-  const st = save.dailyStats && save.dailyStats[key];
-  const stars = st ? "⭐".repeat(st.stars) : "☆☆☆ (Unpacked)";
-  const details = st ? `${st.moves} moves • ${st.balancePct}% balance` : "Try today's gate challenge!";
-  const text = `🧳 Gate Games 📅 Daily (${key})\n${stars} — ${details}`;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => toast("Daily scorecard copied!"));
-  } else {
-    toast(text);
-  }
-  fx.tap();
-}
-

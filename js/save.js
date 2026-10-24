@@ -1,7 +1,7 @@
 // Save data in localStorage. parseSave/migrateSave are pure so they can be unit-tested.
 
 export const SAVE_KEY = "gate_suite_save_v3";
-export const SAVE_VERSION = 2; // bump and add a step to migrateSave() whenever the save shape changes
+export const SAVE_VERSION = 3; // bump and add a step to migrateSave() whenever the save shape changes
 
 function storageGet(key) {
   try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -19,6 +19,9 @@ export function defaultSave(legacyMiles = Number(storageGet("gate_suite_miles") 
     dailyStats: {},    // dateKey -> { moves, balancePct, stars, mask }
     itineraries: {},   // levelId -> true (completed Pack + Route + Board)
     skippedBags: {},   // levelId -> true (skipped to open the next bag; no stars or miles)
+    bagRecords: {},    // levelId -> best run { stars, moves, balancePct } (hand-made bags)
+    triviaRecords: {}, // roundId -> best { score, wrong }
+    boardingRecords: {}, // cabin size ("3" / "4") -> { solved, atPar, vsPar, moves, par }
     tetrisLevel: 0,
     triviaIdx: 0,
     triviaSolved: {},  // roundId -> true
@@ -40,6 +43,12 @@ export function migrateSave(raw, defaults = defaultSave()) {
   if ((raw.version || 0) < 2) {
     // v2 added skippedBags; repair it in case an older build stored something odd there
     if (!s.skippedBags || typeof s.skippedBags !== "object") s.skippedBags = {};
+  }
+  if ((raw.version || 0) < 3) {
+    // v3 added personal records; they start empty (older saves only kept stars and daily results)
+    ["bagRecords", "triviaRecords", "boardingRecords"].forEach(k => {
+      if (!s[k] || typeof s[k] !== "object") s[k] = {};
+    });
   }
   s.version = SAVE_VERSION;
   return s;

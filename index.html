@@ -22,6 +22,7 @@
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
     <symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0V4z"/><path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8 20h8M10 17h4"/></symbol>
     <symbol id="i-bag" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
     <symbol id="i-sound" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 9a4 4 0 0 1 0 6"/><path d="M19 6.5a7.5 7.5 0 0 1 0 11"/></symbol>
     <symbol id="i-mute" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9.5l5 5M22 9.5l-5 5"/></symbol>
@@ -69,7 +70,8 @@
         <span class="stub-value" id="milesCount">1,200</span>
       </div>
       <div class="stub-buttons">
-        <button class="icon-btn" id="btnBuilder" data-action="openBuilder" aria-label="Custom bag builder and daily bag results" title="Custom bag &amp; daily bag"><svg class="ico" aria-hidden="true"><use href="#i-wrench"/></svg></button>
+        <button class="icon-btn" id="btnRecords" data-action="openRecords" aria-label="Your records" title="Records"><svg class="ico" aria-hidden="true"><use href="#i-trophy"/></svg></button>
+        <button class="icon-btn" id="btnBuilder" data-action="openBuilder" aria-label="Custom bag builder" title="Custom bag builder"><svg class="ico" aria-hidden="true"><use href="#i-wrench"/></svg></button>
         <button class="icon-btn" id="btnShop" data-action="openShop" aria-label="Open miles shop" title="Miles shop"><svg class="ico" aria-hidden="true"><use href="#i-bag"/></svg></button>
         <button class="icon-btn" id="btnSound" data-action="toggleSound" aria-label="Toggle sound and haptics" title="Sound &amp; haptics"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
         <button class="icon-btn" id="btnTheme" data-action="toggleTheme" aria-label="Switch theme" title="Theme"><svg class="ico" aria-hidden="true"><use href="#i-moon"/></svg></button>
@@ -284,19 +286,12 @@
   </section>
 </main>
 
-<!-- Custom Bag Builder & Daily Bag Results Modal -->
+<!-- Custom Bag Builder Modal -->
 <div class="modal" id="builderModal">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="builderTitle">
     <div class="modal-head">
-      <h2 id="builderTitle">Custom bag &amp; daily bag</h2>
+      <h2 id="builderTitle">Custom bag builder</h2>
       <button class="icon-btn" id="btnCloseBuilder" data-action="closeBuilder" aria-label="Close builder"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
-    </div>
-
-    <div class="section-label">Your daily bag (<span id="lbDateLabel">Today</span>)</div>
-    <div class="daily-card" id="dailyCard"></div>
-    <div class="modal-row">
-      <button class="btn btn-xs btn-accent-outline" data-action="shareDailyResult"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>Copy daily score card</button>
-      <button class="btn btn-xs" data-action="playDailyFromBuilder"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Play daily bag</button>
     </div>
 
     <div class="section-label">Bag customizer (level editor)</div>
@@ -347,6 +342,45 @@
 </div>
 
 <!-- Miles Shop -->
+<!-- Records Modal: personal bests on this device -->
+<div class="modal" id="recordsModal">
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="recordsTitle">
+    <div class="modal-head">
+      <h2 id="recordsTitle">Your records</h2>
+      <button class="icon-btn" id="btnCloseRecords" data-action="closeRecords" aria-label="Close records"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
+    </div>
+    <div class="mode-switcher records-tabs" role="tablist">
+      <button class="mode-tab" id="recTab-pack" role="tab" data-action="recordsTab" data-arg="pack">Pack</button>
+      <button class="mode-tab" id="recTab-trivia" role="tab" data-action="recordsTab" data-arg="trivia">Trivia</button>
+      <button class="mode-tab" id="recTab-boarding" role="tab" data-action="recordsTab" data-arg="boarding">Boarding</button>
+    </div>
+
+    <div class="records-panel" id="recPanel-pack" role="tabpanel">
+      <div class="section-label">Your daily bag (<span id="lbDateLabel">Today</span>)</div>
+      <div class="daily-card" id="dailyCard"></div>
+      <div class="modal-row">
+        <button class="btn btn-xs btn-accent-outline" data-action="shareDailyResult"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>Copy daily score card</button>
+        <button class="btn btn-xs" data-action="playDailyFromRecords"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Play daily bag</button>
+      </div>
+      <div class="section-label">Best run per bag</div>
+      <div class="daily-card" id="bagRecords"></div>
+    </div>
+
+    <div class="records-panel hidden" id="recPanel-trivia" role="tabpanel">
+      <div class="modal-note records-summary" id="triviaSummary"></div>
+      <div class="section-label">Best score per flight</div>
+      <div class="daily-card" id="triviaRecords"></div>
+    </div>
+
+    <div class="records-panel hidden" id="recPanel-boarding" role="tabpanel">
+      <div class="modal-note records-summary" id="boardingSummary"></div>
+      <div id="boardingRecords" class="records-stack"></div>
+    </div>
+
+    <div class="modal-note">Records are saved on this device only.</div>
+  </div>
+</div>
+
 <div class="modal" id="shopModal">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
     <div class="modal-head">

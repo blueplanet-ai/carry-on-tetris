@@ -10,6 +10,7 @@ import { LEVELS } from "../generator.js";
 import { isRoundUnlocked } from "../progress.js";
 import { newShuffle } from "./boarding.js";
 import { shortCity } from "../data/airports.js";
+import { recordTrivia } from "../records.js";
 
 const TRIVIA_START_POT = 500;
 const WRONG_PENALTY = 150;
@@ -20,6 +21,9 @@ let currentTriviaPot = TRIVIA_START_POT;
 let triviaRoundOver = false;
 let triviaPractice = false;
 let fiftyUsed = false;
+// The round's score for records: what the pool would pay, tracked in practice rounds too
+let roundScore = TRIVIA_START_POT;
+let wrongGuesses = 0;
 
 const unlocked = (idx) => isRoundUnlocked(TRIVIA_ROUNDS[idx], save);
 const unlockHint = (round) => {
@@ -134,6 +138,8 @@ export function loadTriviaRound(idx) {
   currentTriviaPot = triviaPractice ? 0 : TRIVIA_START_POT;
   triviaRoundOver = false;
   fiftyUsed = false;
+  roundScore = TRIVIA_START_POT;
+  wrongGuesses = 0;
 
   syncBoardingHeader();
   renderFlightStrip();
@@ -181,6 +187,7 @@ export function unlockClue(num) {
   const round = TRIVIA_ROUNDS[currentTriviaIdx];
   const cost = num === 2 ? 100 : 200;
   currentTriviaPot = Math.max(0, currentTriviaPot - cost);
+  roundScore = Math.max(0, roundScore - cost);
   $(`clue${num}Box`).classList.add("revealed");
   const t = $(`clue${num}Text`);
   t.textContent = num === 2 ? round.clue2 : round.clue3;
@@ -222,11 +229,11 @@ function handleTriviaGuess(iata, city, btnEl) {
     syncBoardingHeader();
 
     const earned = triviaPractice ? 0 : currentTriviaPot;
-    if (!triviaPractice) {
-      save.triviaSolved[round.id] = true;
-      persist();
-      renderFlightStrip();
-    }
+    const { record, best } = recordTrivia(save.triviaRecords[round.id], { score: roundScore, wrong: wrongGuesses });
+    save.triviaRecords[round.id] = record;
+    if (!triviaPractice) save.triviaSolved[round.id] = true;
+    persist();
+    if (!triviaPractice) renderFlightStrip();
     if (earned) addMiles(earned);
     syncBoardingHeader();
     fx.win();
@@ -235,7 +242,9 @@ function handleTriviaGuess(iata, city, btnEl) {
       ? `Cleared for ${city} (${iata})! Earned +${earned} miles.`
       : triviaPractice ? `${city} (${iata}) — practice round complete.` : `${city} (${iata}) — pool was empty, fewer guesses next time!`, "success");
     $("triviaWinTitle").textContent = earned ? `Routed to ${iata}! +${earned} MI` : `Routed to ${iata}!`;
-    $("triviaWinSub").textContent = `${city} • Boarding pass verified.`;
+    $("triviaWinSub").textContent = best
+      ? `${city} • New best for this flight: ${roundScore} points, ${wrongGuesses} wrong.`
+      : `${city} • Boarding pass verified.`;
 
     const boardBtn = $("btnBoardFlight");
     if (app.itinerary && app.itinerary.dest === round.origin) {
@@ -253,6 +262,8 @@ function handleTriviaGuess(iata, city, btnEl) {
     btnEl.classList.add("wrong");
     btnEl.disabled = true;
     currentTriviaPot = Math.max(0, currentTriviaPot - WRONG_PENALTY);
+    roundScore = Math.max(0, roundScore - WRONG_PENALTY);
+    wrongGuesses++;
     updatePot();
     fx.error();
     setTriviaStatus(triviaPractice

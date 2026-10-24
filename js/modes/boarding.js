@@ -10,6 +10,7 @@ import { isSolved, scramble, slideLine, solve } from "../boarding-logic.js";
 import { LEVELS } from "../generator.js";
 import { loadNextBagAfter, currentLevelIndex, renderLevelStrip } from "./pack.js";
 import { paxArt } from "../art.js";
+import { recordBoarding, formatVsPar } from "../records.js";
 
 // Per cabin size: scramble walk length, par slack over the shortest solution, and miles (under / over par).
 // 4×4 scrambles stay short so the exact solver finishes in milliseconds on a phone.
@@ -149,6 +150,8 @@ function tapPax(v) {
       nextBagBtn.style.display = "none";
     }
     save.shuffleSolved++;
+    const { record, best } = recordBoarding(save.boardingRecords[cabin], { moves: shuffleMoves, par: shufflePar });
+    save.boardingRecords[cabin] = record;
     persist();
     addMiles(earned);
     syncBoardingHeader();
@@ -159,7 +162,8 @@ function tapPax(v) {
       ? `All groups lined up in ${shuffleMoves} moves! +${earned} miles${itinBonus ? " (incl. +300 MI itinerary bonus!)" : ""}.${practiceNote}`
       : `All groups lined up in ${shuffleMoves} moves!${practiceNote}`, "success");
     $("shuffleWinTitle").textContent = earned ? `Boarding complete! +${earned} MI` : "Boarding complete!";
-    $("shuffleWinSub").textContent = shuffleMoves <= shufflePar ? `Under par (${shufflePar}) — on-time departure!` : `${shuffleMoves} moves — a little delayed, but boarded.`;
+    $("shuffleWinSub").textContent = (shuffleMoves <= shufflePar ? `Under par (${shufflePar}) — on-time departure!` : `${shuffleMoves} moves — a little delayed, but boarded.`) +
+      (best ? ` New best ${cabin}×${cabin}: ${formatVsPar(record.vsPar)} vs par!` : "");
     $("shuffleWinBanner").classList.add("show");
   } else {
     setShuffleStatus(`Keep going — ${shuffleTiles.filter((t, i) => t === i + 1).length}/${lastGroup()} passengers in place.`);

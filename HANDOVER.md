@@ -111,8 +111,15 @@ The game now uses the look of [blueplanet-ai.github.io](https://blueplanet-ai.gi
 6. **Shop shells:** the five suitcase skins are now shell colours (`--shell`); their ids are unchanged, so saves keep the equipped skin.
 7. Fonts load from Google Fonts; offline (or blocked) the game falls back to Georgia / system sans / monospace. The pass codes use Arial, which is always available.
 
-### 🧾 What Changed in v0.7.1
-1. **Daily leaderboard removed:** the game has no accounts or server, so the "gate travelers" it ranked you against were generated names and scores. The builder window (`🛠️`) now shows **Your daily bag**: today's stars, moves and balance (or a prompt to pack it) and your last 7 days, all from `save.dailyStats` on this device. **Copy daily score card** and **Play daily bag** are unchanged, so players compare results by sharing the card. Service worker cache is now `gate-games-v10`.
+### 🧾 What Changed in v0.7.1 (records)
+1. **Daily leaderboard removed:** the game has no accounts or server, so the "gate travelers" it ranked you against were generated names and scores.
+2. **Records window (trophy button in the header):** personal bests on this device, with Pack, Trivia and Boarding tabs; it opens on the game you're playing. Logic is the pure `js/records.js` (unit-tested), the window is `js/records-view.js`.
+   - **Pack:** your daily bag (today plus the last 7 days, with **Copy daily score card** and **Play daily bag**, moved here from the builder) and the best run per hand-made bag: more stars, then fewer moves, then better balance. Custom bags keep no record. Bags packed before v0.7.1 show their banked stars until replayed.
+   - **Trivia:** best score per flight (what the reward pool would pay, out of 500: clues and wrong guesses lower it), then fewest wrong guesses. Practice replays count, so a routed flight can still be improved.
+   - **Boarding:** per cabin size (3×3 and 4×4), the best result against par (line-ups are scrambled differently each time, so raw moves don't compare), line-ups solved and how many finished at or under par.
+3. **New best:** beating an earlier record says so in that game's win banner. A first result is recorded quietly.
+4. The 🛠️ window is now just the custom bag builder.
+5. **Save v3** adds `bagRecords`, `triviaRecords` and `boardingRecords`. Service worker cache is `gate-games-v11`.
 
 ---
 
@@ -122,7 +129,7 @@ Key: `gate_suite_save_v3`
 
 ```json
 {
-  "version": 2,
+  "version": 3,
   "miles": 1200,
   "lifetime": 1200,
   "muted": false,
@@ -134,6 +141,15 @@ Key: `gate_suite_save_v3`
   },
   "dailyStats": {
     "2026-10-22": { "moves": 8, "balancePct": 94, "stars": 3, "mask": 7 }
+  },
+  "bagRecords": {
+    "sfo-lax": { "stars": 3, "moves": 9, "balancePct": 95 }
+  },
+  "triviaRecords": {
+    "sfo-yvr": { "score": 350, "wrong": 1 }
+  },
+  "boardingRecords": {
+    "3": { "solved": 5, "atPar": 4, "vsPar": -3, "moves": 19, "par": 22 }
   },
   "skippedBags": {
     "jfk-lhr": true
