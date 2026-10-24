@@ -111,6 +111,9 @@ The game now uses the look of [blueplanet-ai.github.io](https://blueplanet-ai.gi
 6. **Shop shells:** the five suitcase skins are now shell colours (`--shell`); their ids are unchanged, so saves keep the equipped skin.
 7. Fonts load from Google Fonts; offline (or blocked) the game falls back to Georgia / system sans / monospace. The pass codes use Arial, which is always available.
 
+### 🧾 What Changed in v0.7.1
+1. **Daily leaderboard removed:** the game has no accounts or server, so the "gate travelers" it ranked you against were generated names and scores. The builder window (`🛠️`) now shows **Your daily bag**: today's stars, moves and balance (or a prompt to pack it) and your last 7 days, all from `save.dailyStats` on this device. **Copy daily score card** and **Play daily bag** are unchanged, so players compare results by sharing the card. Service worker cache is now `gate-games-v10`.
+
 ---
 
 ## 4. Save Data Schema (`localStorage`)

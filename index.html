@@ -69,7 +69,7 @@
         <span class="stub-value" id="milesCount">1,200</span>
       </div>
       <div class="stub-buttons">
-        <button class="icon-btn" id="btnBuilder" data-action="openBuilder" aria-label="Custom bag builder and daily leaderboard" title="Custom bag &amp; daily board"><svg class="ico" aria-hidden="true"><use href="#i-wrench"/></svg></button>
+        <button class="icon-btn" id="btnBuilder" data-action="openBuilder" aria-label="Custom bag builder and daily bag results" title="Custom bag &amp; daily bag"><svg class="ico" aria-hidden="true"><use href="#i-wrench"/></svg></button>
         <button class="icon-btn" id="btnShop" data-action="openShop" aria-label="Open miles shop" title="Miles shop"><svg class="ico" aria-hidden="true"><use href="#i-bag"/></svg></button>
         <button class="icon-btn" id="btnSound" data-action="toggleSound" aria-label="Toggle sound and haptics" title="Sound &amp; haptics"><svg class="ico" aria-hidden="true"><use href="#i-sound"/></svg></button>
         <button class="icon-btn" id="btnTheme" data-action="toggleTheme" aria-label="Switch theme" title="Theme"><svg class="ico" aria-hidden="true"><use href="#i-moon"/></svg></button>
@@ -284,16 +284,16 @@
   </section>
 </main>
 
-<!-- Custom Bag Builder & Daily Leaderboard Modal -->
+<!-- Custom Bag Builder & Daily Bag Results Modal -->
 <div class="modal" id="builderModal">
   <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="builderTitle">
     <div class="modal-head">
-      <h2 id="builderTitle">Custom bag &amp; daily board</h2>
+      <h2 id="builderTitle">Custom bag &amp; daily bag</h2>
       <button class="icon-btn" id="btnCloseBuilder" data-action="closeBuilder" aria-label="Close builder"><svg class="ico" aria-hidden="true"><use href="#i-close"/></svg></button>
     </div>
 
-    <div class="section-label">Daily bag: you vs. sample gate scores (<span id="lbDateLabel">Today</span>)</div>
-    <div class="leaderboard-card" id="dailyLeaderboard"></div>
+    <div class="section-label">Your daily bag (<span id="lbDateLabel">Today</span>)</div>
+    <div class="daily-card" id="dailyCard"></div>
     <div class="modal-row">
       <button class="btn btn-xs btn-accent-outline" data-action="shareDailyResult"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg>Copy daily score card</button>
       <button class="btn btn-xs" data-action="playDailyFromBuilder"><svg class="ico" aria-hidden="true"><use href="#i-calendar"/></svg>Play daily bag</button>
