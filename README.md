@@ -36,6 +36,7 @@ CI runs all of these on every pull request (`.github/workflows/ci.yml`).
 | `js/boarding-logic.js` | Sliding-puzzle rules (3×3 and 4×4) and the shortest-solution solver. **Pure.** |
 | `js/custom-bag.js` | Custom bag configs and share-link parsing. **Pure.** |
 | `js/progress.js` | Which bags and trivia flights are open, skipping, perfect bags. **Pure.** |
+| `js/records.js`, `js/records-view.js` | Personal bests per game: how a run compares (**pure**), and the Records window. |
 | `js/save.js` | Save data in `localStorage`, with versioned migrations. |
 | `js/economy.js`, `audio.js`, `shell.js`, `builder.js`, `state.js`, `util.js` | Miles and shop, sound, boarding-pass header and mode tabs, the builder window, shared state, helpers. |
 | `js/art.js`, `js/theme.js` | Drawings of items and passengers (in place of emoji); the light / dark toggle. |

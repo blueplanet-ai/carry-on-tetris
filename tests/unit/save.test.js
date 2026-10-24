@@ -33,3 +33,14 @@ test("v1 saves gain skippedBags", () => {
   assert.equal(s.version, SAVE_VERSION);
   assert.deepEqual(s.skippedBags, {});
 });
+
+test("v2 saves gain empty records and keep their daily results", () => {
+  const v2 = { ...defaults(), version: 2, dailyStats: { "2026-10-22": { moves: 8, balancePct: 94, stars: 3, mask: 7 } } };
+  delete v2.bagRecords; delete v2.triviaRecords; delete v2.boardingRecords;
+  const s = parseSave(JSON.stringify(v2), defaults());
+  assert.equal(s.version, 3);
+  assert.deepEqual(s.bagRecords, {});
+  assert.deepEqual(s.triviaRecords, {});
+  assert.deepEqual(s.boardingRecords, {});
+  assert.deepEqual(s.dailyStats, v2.dailyStats);
+});

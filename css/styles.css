@@ -1002,10 +1002,22 @@ button { color: inherit; }
   cursor: pointer;
 }
 .builder-cell.blocked { border-color: transparent; background: repeating-linear-gradient(45deg, var(--shell) 0 5px, var(--shell-dark) 5px 10px); }
-.leaderboard-card { display: flex; flex-direction: column; gap: 4px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
-.lb-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 13px; }
-.lb-row span:last-child { font-family: var(--font-mono); font-size: 12px; color: var(--ink-2); white-space: nowrap; }
-.lb-row.me { background: var(--signal-tint); font-weight: 600; }
+.records-tabs { margin: 0 -4px; }
+.records-panel { display: flex; flex-direction: column; gap: 10px; }
+.records-panel.hidden { display: none; }
+.records-summary { text-align: left; }
+.records-stack { display: flex; flex-direction: column; gap: 10px; }
+.record-card { display: flex; flex-direction: column; gap: 2px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.record-title { padding: 2px 8px 4px; font-weight: 600; font-size: 14px; }
+.record-empty { padding: 0 8px 4px; font-size: 13px; color: var(--ink-2); }
+.daily-card { display: flex; flex-direction: column; gap: 4px; padding: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.daily-today { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px; border-radius: 6px; background: var(--signal-tint); font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+.daily-today.empty { font-family: inherit; font-weight: 400; color: var(--ink-2); }
+.daily-stars { font-size: 16px; letter-spacing: 1px; }
+.daily-card .section-label.sub { margin: 6px 0 0; }
+.day-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 8px; font-family: var(--font-mono); font-size: 12px; }
+.day-row span:last-child { color: var(--ink-2); white-space: nowrap; }
+.day-row.missed span:last-child { opacity: 0.6; }
 
 /* ---------- Toast ---------- */
 .toast {

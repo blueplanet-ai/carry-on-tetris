@@ -12,16 +12,20 @@ import * as pack from "./modes/pack.js";
 import * as trivia from "./modes/trivia.js";
 import * as boarding from "./modes/boarding.js";
 import * as builder from "./builder.js";
+import * as records from "./records-view.js";
 
 // Buttons declare data-action (and optionally data-arg) instead of inline onclick handlers
 const ACTIONS = {
   switchMode: (mode) => switchMode(mode),
   openBuilder: builder.openBuilder,
   closeBuilder: builder.closeBuilder,
-  playDailyFromBuilder: builder.playDailyFromBuilder,
   playCustomBag: builder.playCustomBagFromModal,
   shareCustomBag: builder.shareCustomBagUrl,
-  shareDailyResult: builder.shareDailyResult,
+  openRecords: records.openRecords,
+  closeRecords: records.closeRecords,
+  recordsTab: records.showRecordsTab,
+  playDailyFromRecords: records.playDailyFromRecords,
+  shareDailyResult: records.shareDailyResult,
   openShop,
   closeShop,
   toggleSound,
@@ -49,7 +53,7 @@ document.addEventListener("click", (e) => {
 });
 
 // Tapping the dimmed backdrop closes a modal
-[["builderModal", builder.closeBuilder], ["shopModal", closeShop]].forEach(([id, close]) => {
+[["builderModal", builder.closeBuilder], ["recordsModal", records.closeRecords], ["shopModal", closeShop]].forEach(([id, close]) => {
   $(id).addEventListener("click", (e) => { if (e.target === e.currentTarget) close(); });
 });
 
@@ -60,6 +64,10 @@ document.addEventListener("keydown", (e) => {
   }
   if ($("builderModal").classList.contains("show")) {
     if (e.key === "Escape") builder.closeBuilder();
+    return;
+  }
+  if ($("recordsModal").classList.contains("show")) {
+    if (e.key === "Escape") records.closeRecords();
     return;
   }
   if (app.mode !== "tetris") return;

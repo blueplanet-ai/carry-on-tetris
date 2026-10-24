@@ -10,6 +10,7 @@ import { computeBalance, placementBase, validatePlacement } from "../packing.js"
 import { TRIVIA_ROUNDS } from "../data/trivia-rounds.js";
 import { itemArt, ruleBadge } from "../art.js";
 import { loadTriviaRound, renderFlightStrip } from "./trivia.js";
+import { recordPack, starsText } from "../records.js";
 import { isLevelUnlocked as levelOpen, canSkipLevel, isPerfect, isRoundUnlocked, roundsUnlockedBy } from "../progress.js";
 
 const HINT_COST = 150;
@@ -578,18 +579,17 @@ function checkWin(silent = false) {
   const earned = [1, 2, 4].reduce((sum, b) => sum + ((newBits & b) ? STAR_REWARDS[b] : 0), 0);
   save.bagStars[key] = prev | mask;
 
+  // Best run per bag (the daily bag per date); custom bags change with every link, so they keep no record
+  const run = { stars: popcount(mask), moves: packMoves, balancePct: Math.round(100 - bal.abs) };
+  let newBest = false;
   if (levelCfg.isDaily) {
-    const dKey = levelCfg.dateKey;
-    const prevStat = save.dailyStats[dKey];
-    const starsCount = popcount(mask);
-    const balScore = Math.round(100 - bal.abs);
-    if (
-      !prevStat ||
-      starsCount > prevStat.stars ||
-      (starsCount === prevStat.stars && packMoves < prevStat.moves)
-    ) {
-      save.dailyStats[dKey] = { moves: packMoves, balancePct: balScore, stars: starsCount, mask };
-    }
+    const { record, best } = recordPack(save.dailyStats[levelCfg.dateKey], { ...run, mask });
+    save.dailyStats[levelCfg.dateKey] = record;
+    newBest = best;
+  } else if (!levelCfg.isCustom) {
+    const { record, best } = recordPack(save.bagRecords[key], run);
+    save.bagRecords[key] = record;
+    newBest = best;
   }
 
   persist();
@@ -608,6 +608,7 @@ function checkWin(silent = false) {
     ? `<li class="ok">★ Zipped 100% full</li>`
     : `<li>☆ ${empty} empty slot${empty > 1 ? "s" : ""} — ${curveballPending ? "accept the curveball above!" : "Reset & take the curveball"}</li>`);
   if (!earned && prev) crit.push(`<li>Stars already banked — no repeat miles</li>`);
+  if (newBest) crit.push(`<li class="ok">New best for this bag: ${starsText(run.stars)} · ${run.moves} moves · ${run.balancePct}% balance</li>`);
   $("winCriteria").innerHTML = crit.join("");
 
   const tripIdx = tripRoundIndex();

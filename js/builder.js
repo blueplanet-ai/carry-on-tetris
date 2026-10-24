@@ -1,6 +1,5 @@
-// The builder window: daily leaderboard and score card, plus the custom bag builder and share links.
-import { $, toast, todayKey, mulberry32, hashStr } from "./util.js";
-import { save } from "./save.js";
+// The builder window: the custom bag builder and share links.
+import { $, toast } from "./util.js";
 import { fx } from "./audio.js";
 import { app } from "./state.js";
 import { switchMode } from "./shell.js";
@@ -32,7 +31,6 @@ export function loadSharedBagFromHash({ announce = true } = {}) {
 }
 
 export function openBuilder() {
-  renderDailyLeaderboard();
   rebuildCustomPreviewGrid();
   $("builderModal").classList.add("show");
   fx.tap();
@@ -40,12 +38,6 @@ export function openBuilder() {
 
 export function closeBuilder() {
   $("builderModal").classList.remove("show");
-}
-
-export function playDailyFromBuilder() {
-  closeBuilder();
-  switchMode("tetris");
-  loadLevel("daily");
 }
 
 export function initBuilderForm() {
@@ -134,52 +126,3 @@ export function shareCustomBagUrl() {
   }
   fx.coin();
 }
-
-function renderDailyLeaderboard() {
-  const key = todayKey();
-  $("lbDateLabel").textContent = key;
-  const rng = mulberry32(hashStr("lb-" + key));
-  const callsigns = ["Capt. Lin (SFO)", "FirstClassFox", "GateB14_Pro", "JetBridgeJay", "AisleSeatAmy", "RedEyeRory"];
-  const entries = [];
-  for (let i = 0; i < 4; i++) {
-    const name = callsigns[Math.floor(rng() * callsigns.length)] + ` #${10 + Math.floor(rng() * 89)}`;
-    const stars = i < 2 ? 3 : 2;
-    const moves = 7 + i * 2 + Math.floor(rng() * 3);
-    const balancePct = 96 - i * 4 - Math.floor(rng() * 3);
-    entries.push({ name, stars, moves, balancePct, isMe: false });
-  }
-  const myStat = save.dailyStats && save.dailyStats[key];
-  if (myStat) {
-    entries.push({
-      name: "You (gate traveler)",
-      stars: myStat.stars,
-      moves: myStat.moves,
-      balancePct: myStat.balancePct,
-      isMe: true
-    });
-  }
-  entries.sort((a, b) => (b.stars - a.stars) || (a.moves - b.moves) || (b.balancePct - a.balancePct));
-
-  const el = $("dailyLeaderboard");
-  el.innerHTML = entries.map((e, idx) => `
-    <div class="lb-row${e.isMe ? " me" : ""}">
-      <span>#${idx + 1} ${e.name}</span>
-      <span>${"★".repeat(e.stars)}${"☆".repeat(3 - e.stars)} · ${e.moves}m · ${e.balancePct}% bal</span>
-    </div>
-  `).join("") + `<div class="modal-note">Other travelers are sample scores for practice — not real players.</div>` + (!myStat ? `<div class="modal-note">Pack today's daily bag to post your score!</div>` : "");
-}
-
-export function shareDailyResult() {
-  const key = todayKey();
-  const st = save.dailyStats && save.dailyStats[key];
-  const stars = st ? "⭐".repeat(st.stars) : "☆☆☆ (Unpacked)";
-  const details = st ? `${st.moves} moves • ${st.balancePct}% balance` : "Try today's gate challenge!";
-  const text = `🧳 Gate Games 📅 Daily (${key})\n${stars} — ${details}`;
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).then(() => toast("Daily scorecard copied!"));
-  } else {
-    toast(text);
-  }
-  fx.tap();
-}
-
