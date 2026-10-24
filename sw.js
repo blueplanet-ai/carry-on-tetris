@@ -1,8 +1,8 @@
 // Network-first service worker: always fresh when online, fully playable offline at the gate.
-const CACHE = "gate-games-v11";
+const CACHE = "gate-games-v12";
 // Everything the game needs to run offline. Add new modules here.
 const ASSETS = [
-  "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./css/styles.css",
+  "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./apple-touch-icon.png", "./css/styles.css",
   "./js/main.js", "./js/util.js", "./js/save.js", "./js/audio.js", "./js/economy.js", "./js/state.js",
   "./js/shell.js", "./js/generator.js", "./js/packing.js", "./js/boarding-logic.js", "./js/custom-bag.js",
   "./js/builder.js", "./js/data/trivia-rounds.js",
